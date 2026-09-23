@@ -34,6 +34,9 @@ export const MyComplaintsPage: React.FC = () => {
     { key: 'pending', label: t.tabPending },
     { key: 'in_progress', label: t.tabInProgress },
     { key: 'forwarded', label: t.tabForwarded },
+    { key: 'verification_pending', label: t.tabVerificationPending },
+    { key: 'citizen_confirmed', label: t.tabCitizenConfirmed },
+    { key: 'disputed', label: t.tabDisputed },
     { key: 'resolved', label: t.tabResolved },
     { key: 'rejected', label: t.tabRejected },
   ];

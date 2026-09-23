@@ -24,6 +24,10 @@ import {
   ThumbsDown,
   Star,
   ArrowLeft,
+  MapPin,
+  Video,
+  BadgeCheck,
+  ClipboardCheck,
 } from 'lucide-react';
 
 export const AuthorityDashboard: React.FC = () => {
@@ -33,6 +37,8 @@ export const AuthorityDashboard: React.FC = () => {
     forwardComplaint,
     verifyComplaint,
     rejectComplaint,
+    submitForVerification,
+    closeComplaint,
     simulateAutoEscalation,
     user,
     setSelectedComplaintId,
@@ -41,9 +47,10 @@ export const AuthorityDashboard: React.FC = () => {
     t,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'in_progress' | 'forwarded' | 'resolved'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | ComplaintStatus>('all');
   const [search, setSearch] = useState('');
   const [actionComplaint, setActionComplaint] = useState<Complaint | null>(null);
+  const [closeTarget, setCloseTarget] = useState<Complaint | null>(null);
 
   // Form states for the Action Drawer/Modal
   const [selectedStatus, setSelectedStatus] = useState<ComplaintStatus>('in_progress');
@@ -52,9 +59,18 @@ export const AuthorityDashboard: React.FC = () => {
   const [officialRemark, setOfficialRemark] = useState('');
   const [proofImage, setProofImage] = useState('/src/assets/images/street_light_proof_1790113405855.jpg');
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofVideo, setProofVideo] = useState<File | null>(null);
+  const [proofVideoUrl, setProofVideoUrl] = useState('');
+  const [geoLat, setGeoLat] = useState('');
+  const [geoLng, setGeoLng] = useState('');
+  const [geoPlace, setGeoPlace] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+  const [closeRemark, setCloseRemark] = useState('');
   const [isApplying, setIsApplying] = useState(false);
   const [isForwardingMode, setIsForwardingMode] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+
+  const VERIFICATION_STATES: ComplaintStatus[] = ['verification_pending', 'citizen_confirmed', 'disputed'];
 
   // Stats
   const total = complaints.length;
@@ -62,7 +78,11 @@ export const AuthorityDashboard: React.FC = () => {
   const inProgress = complaints.filter((c) => c.status === 'in_progress').length;
   const forwarded = complaints.filter((c) => c.status === 'forwarded').length;
   const resolved = complaints.filter((c) => c.status === 'resolved').length;
-  const overdue = complaints.filter((c) => c.daysLeft <= 0 && c.status !== 'resolved').length;
+  const verificationQueue = complaints.filter((c) => VERIFICATION_STATES.includes(c.status)).length;
+  const closureQueueRows = complaints.filter((c) => VERIFICATION_STATES.includes(c.status));
+  const isHigherAuthority = ['mukhiya', 'block_officer', 'dm_authority'].includes(user.role);
+  const canClose = (c: Complaint) =>
+    user.role === 'admin' || (isHigherAuthority && c.status === 'disputed');
 
   const filtered = complaints.filter((c) => {
     const matchesTab = activeTab === 'all' || c.status === activeTab;
@@ -79,7 +99,34 @@ export const AuthorityDashboard: React.FC = () => {
     setOfficialRemark('');
     setProofFile(null);
     setProofImage('');
+    setProofVideo(null);
+    setProofVideoUrl('');
+    setGeoLat('');
+    setGeoLng('');
+    setGeoPlace('');
     setIsForwardingMode(false);
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setSuccessToast('Geolocation is not supported in this browser.');
+      setTimeout(() => setSuccessToast(''), 3500);
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeoLat(pos.coords.latitude.toFixed(6));
+        setGeoLng(pos.coords.longitude.toFixed(6));
+        setIsLocating(false);
+      },
+      (err) => {
+        setSuccessToast(`Location unavailable: ${err.message}`);
+        setIsLocating(false);
+        setTimeout(() => setSuccessToast(''), 3500);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleApplyStatusUpdate = async (e: React.FormEvent) => {
@@ -87,29 +134,59 @@ export const AuthorityDashboard: React.FC = () => {
     if (!actionComplaint) return;
     setIsApplying(true);
     try {
-      let proofUrl: string | undefined;
-      if (selectedStatus === 'resolved') {
+      if (selectedStatus === 'verification_pending') {
         if (!proofFile) {
-          setSuccessToast('Resolution proof photo is mandatory before marking Resolved.');
+          setSuccessToast('Resolution proof photo is mandatory before submitting for verification.');
           setIsApplying(false);
           return;
         }
-        proofUrl = await uploadEvidence(proofFile, user.id);
+        const photoUrl = await uploadEvidence(proofFile, user.id);
+        let videoPath = '';
+        if (proofVideo) videoPath = await uploadEvidence(proofVideo, user.id);
+        await submitForVerification(
+          actionComplaint.id,
+          {
+            photoUrl,
+            videoUrl: videoPath || proofVideoUrl || undefined,
+            lat: geoLat ? parseFloat(geoLat) : null,
+            lng: geoLng ? parseFloat(geoLng) : null,
+            place: geoPlace,
+          },
+          officialRemark || 'Work completed - submitted for citizen verification.'
+        );
+        setSuccessToast(`Complaint ${actionComplaint.id} submitted for verification. The citizen must now verify the work.`);
+      } else {
+        await updateComplaintStatus(
+          actionComplaint.id,
+          selectedStatus,
+          undefined,
+          officialRemark || `Status set to ${selectedStatus.replace('_', ' ')} by ${user.name}`
+        );
+        setSuccessToast(`Complaint ${actionComplaint.id} updated successfully.`);
       }
-      await updateComplaintStatus(
-        actionComplaint.id,
-        selectedStatus,
-        undefined,
-        officialRemark || `Status set to ${selectedStatus.replace('_', ' ')} by ${user.name}`,
-        proofUrl
-      );
-      setSuccessToast(`Complaint ${actionComplaint.id} updated successfully.`);
       setActionComplaint(null);
     } catch (err) {
       setSuccessToast((err as Error)?.message || 'Failed to update complaint status.');
     } finally {
       setIsApplying(false);
-      setTimeout(() => setSuccessToast(''), 3500);
+      setTimeout(() => setSuccessToast(''), 4500);
+    }
+  };
+
+  const handleCloseComplaint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!closeTarget) return;
+    setIsApplying(true);
+    try {
+      await closeComplaint(closeTarget.id, closeRemark || 'Complaint finally closed after verification.');
+      setSuccessToast(`Complaint ${closeTarget.id} has been FINALLY closed after verification.`);
+      setCloseTarget(null);
+      setCloseRemark('');
+    } catch (err) {
+      setSuccessToast((err as Error)?.message || 'Failed to close complaint.');
+    } finally {
+      setIsApplying(false);
+      setTimeout(() => setSuccessToast(''), 4500);
     }
   };
 
@@ -266,12 +343,12 @@ export const AuthorityDashboard: React.FC = () => {
           </div>
 
           <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
-            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Overdue Escalated</span>
-            <span className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">{overdue}</span>
+            <span className="text-[10px] text-emerald-400 font-semibold block uppercase">Verification Queue</span>
+            <span className="text-xl sm:text-2xl font-mono font-bold text-emerald-300 tabular-nums">{verificationQueue}</span>
           </div>
 
           <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
-            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Resolved</span>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Final Closed</span>
             <span className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">{resolved}</span>
           </div>
         </div>
@@ -315,7 +392,10 @@ export const AuthorityDashboard: React.FC = () => {
 
         {/* Table Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          {(['all', 'pending', 'in_progress', 'forwarded', 'resolved'] as const).map((tab) => (
+          {(['all', 'pending', 'in_progress', 'forwarded', 'verification_pending', 'resolved'] as (
+            | 'all'
+            | ComplaintStatus
+          )[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -325,7 +405,7 @@ export const AuthorityDashboard: React.FC = () => {
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {tab.replace('_', ' ')}
+              {tab === 'verification_pending' ? 'Verification Pending' : tab.replace('_', ' ')}
             </button>
           ))}
         </div>
@@ -424,13 +504,23 @@ export const AuthorityDashboard: React.FC = () => {
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={() => handleOpenAction(c)}
-                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Take Action</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
+                    {VERIFICATION_STATES.includes(c.status) ? (
+                      <span
+                        title={t.closureBlockedLocked}
+                        className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs rounded-lg inline-flex items-center gap-1 cursor-not-allowed"
+                      >
+                        <Lock className="w-3 h-3" />
+                        <span>Closure-Only</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenAction(c)}
+                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Take Action</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -438,6 +528,125 @@ export const AuthorityDashboard: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Closure Verification / Higher Authority Review Queue */}
+      {closureQueueRows.length > 0 && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden space-y-4 p-6">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <ClipboardCheck className="w-4 h-4 text-emerald-700" />
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">{t.closureQueueHeading}</h2>
+              <p className="text-xs text-slate-500">{t.closureQueueSub}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {closureQueueRows.map((c) => {
+              const closable = canClose(c);
+              return (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col lg:flex-row lg:items-center gap-4"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {c.closure?.photoUrl ? (
+                      <img
+                        src={c.closure.photoUrl}
+                        alt="Evidence"
+                        className="w-16 h-16 rounded-xl object-cover border border-slate-300 shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 shrink-0">
+                        <Camera className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-emerald-950">{c.id}</span>
+                        <StatusBadge status={c.status} size="sm" />
+                      </div>
+                      <p className="text-xs font-bold text-slate-800 truncate">{c.title}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {t.evidenceUploadedBy}:{' '}
+                        <strong className="text-slate-700">{c.closure?.submittedByName || '—'}</strong>
+                        {c.closure?.submittedAt ? (
+                          <>
+                            <span className="mx-1">·</span>
+                            {t.evidenceServerTime}: <span className="font-mono">{c.closure.submittedAt}</span>
+                          </>
+                        ) : null}
+                      </p>
+                      {(c.closure?.locationPlace || (c.closure?.locationLat && c.closure.locationLng)) && (
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-emerald-700" />
+                          <span>
+                            {c.closure.locationPlace || `${c.closure.locationLat}, ${c.closure.locationLng}`}
+                          </span>
+                        </p>
+                      )}
+                      {c.closure?.videoUrl && (
+                        <a
+                          href={c.closure.videoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] font-bold text-sky-700 inline-flex items-center gap-1 hover:underline"
+                        >
+                          <Video className="w-3 h-3" /> Video evidence
+                        </a>
+                      )}
+                      {c.closure?.citizenResponse && (
+                        <p className="text-[11px] text-slate-600">
+                          {t.citizenResponse}:{' '}
+                          <strong
+                            className={
+                              c.closure.citizenResponse === 'confirmed'
+                                ? 'text-emerald-700'
+                                : 'text-rose-700'
+                            }
+                          >
+                            {c.closure.citizenResponse === 'confirmed'
+                              ? language === 'hi'
+                                ? 'काम की पुष्टि की गई'
+                                : 'Work confirmed'
+                              : language === 'hi'
+                              ? 'समस्या की शिकायत की गई'
+                              : 'Issue reported'}
+                          </strong>
+                          {c.closure?.citizenRemarks ? ` — ${c.closure.citizenRemarks}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0">
+                    {closable ? (
+                      <button
+                        onClick={() => {
+                          setCloseTarget(c);
+                          setCloseRemark('');
+                        }}
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <BadgeCheck className="w-3.5 h-3.5" />
+                        <span>{t.btnApproveClose}</span>
+                      </button>
+                    ) : (
+                      <span
+                        title={t.closureBlockedLocked}
+                        className="px-3 py-2 text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl inline-flex items-center gap-1.5 cursor-not-allowed"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>{language === 'hi' ? 'केवल एडमिन/उच्चाधिकारी' : 'Admin / Higher Authority Only'}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Authority Action Modal / Drawer */}
       {actionComplaint && (
@@ -488,10 +697,10 @@ export const AuthorityDashboard: React.FC = () => {
                 <form onSubmit={handleApplyStatusUpdate} className="space-y-4 text-xs">
                   <div>
                     <label className="block font-bold text-slate-800 mb-1.5">
-                      1. Select New Status:
+                      {language === 'hi' ? '1. नई स्थिति चुनें:' : '1. Select New Status:'}
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {(['pending', 'in_progress', 'resolved', 'rejected'] as ComplaintStatus[]).map((st) => (
+                      {(['pending', 'in_progress', 'verification_pending', 'rejected'] as ComplaintStatus[]).map((st) => (
                         <button
                           key={st}
                           type="button"
@@ -502,10 +711,18 @@ export const AuthorityDashboard: React.FC = () => {
                               : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          {st.replace('_', ' ')}
+                          {st === 'verification_pending' ? 'Verification Pending' : st.replace('_', ' ')}
                         </button>
                       ))}
                     </div>
+                    {selectedStatus === 'verification_pending' && (
+                      <p className="text-[11px] text-sky-700 font-semibold mt-1.5 flex items-center gap-1">
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        {language === 'hi'
+                          ? 'यह अधिकारी को शिकायत बंद करने से रोकता है — नागरिक सत्यापन के बाद ही अंतिम समापन होगा।'
+                          : 'This opens the closure verification gateway — the officer cannot permanently close this. Final closure happens only after citizen/admin verification.'}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -521,16 +738,17 @@ export const AuthorityDashboard: React.FC = () => {
                     />
                   </div>
 
-                  {/* Resolution Proof Photo (If marking as resolved) */}
-                  {selectedStatus === 'resolved' && (
-                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-3">
+                  {/* Submit for Verification: proof evidence + location + time */}
+                  {selectedStatus === 'verification_pending' && (
+                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-4">
                       <div className="flex items-center gap-2 font-bold text-emerald-950">
                         <Camera className="w-4 h-4 text-emerald-700" />
-                        <span>Upload Resolution Proof (अनिवार्य प्रमाण फोटो)</span>
+                        <span>{language === 'hi' ? 'कार्य प्रमाण अपलोड करें (अनिवार्य फोटो)' : 'Work Proof Upload (Mandatory Photo)'}</span>
                       </div>
-                      <p className="text-[11px] text-emerald-800">
-                        A resolution proof photo is mandatory before a complaint can be marked <strong>Resolved</strong>.
-                        The photo is stored with the complaint and shown to the citizen.
+                      <p className="text-[11px] text-emerald-800 leading-relaxed">
+                        {language === 'hi'
+                          ? 'सत्यापन हेतु सबमिट करने से पहले कार्य-स्थल का प्रमाण फोटो अनिवार्य है। वीडियो एवं जीपीएस स्थान वैकल्पिक हैं। सबमिट के समय सर्वर समय-मुद्रा स्वतः लगेगी।'
+                          : 'A proof photo of the completed work is mandatory before submitting for verification. Video and GPS location are optional. A server timestamp is recorded automatically at submission.'}
                       </p>
 
                       <div className="flex items-center gap-3">
@@ -567,10 +785,92 @@ export const AuthorityDashboard: React.FC = () => {
                           )}
                           {!proofFile && (
                             <p className="text-[10px] font-bold text-red-600">
-                              Photo required — action will be blocked without it.
+                              {language === 'hi' ? 'फोटो अनिवार्य — इसके बिना सबमिट अवरुद्ध होगा।' : 'Photo required — submit will be blocked without it.'}
                             </p>
                           )}
                         </div>
+                      </div>
+
+                      {/* Optional video */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-900 mb-1">
+                            <Video className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>{language === 'hi' ? 'वैकल्पिक वीडियो प्रमाण' : 'Optional Video Proof'}</span>
+                          </label>
+                          <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-xl text-[11px] font-bold text-slate-700 hover:border-emerald-600 cursor-pointer transition-colors">
+                            <Video className="w-3.5 h-3.5" />
+                            <span>{proofVideo ? proofVideo.name : 'Select video file'}</span>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) setProofVideo(f);
+                              }}
+                            />
+                          </label>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-emerald-900 mb-1">
+                            {language === 'hi' ? 'या वीडियो लिंक (वैकल्पिक)' : 'Or paste video link (optional)'}
+                          </label>
+                          <input
+                            type="text"
+                            value={proofVideoUrl}
+                            onChange={(e) => setProofVideoUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* GPS location + place */}
+                      <div>
+                        <label className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-900 mb-1">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{language === 'hi' ? 'कार्य स्थान (जीपीएस, वैकल्पिक)' : 'Work Location (GPS, optional)'}</span>
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex gap-2 flex-1">
+                            <input
+                              type="text"
+                              value={geoLat}
+                              onChange={(e) => setGeoLat(e.target.value)}
+                              placeholder="Latitude"
+                              className="w-1/2 px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl outline-none"
+                            />
+                            <input
+                              type="text"
+                              value={geoLng}
+                              onChange={(e) => setGeoLng(e.target.value)}
+                              placeholder="Longitude"
+                              className="w-1/2 px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl outline-none"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleUseLocation}
+                            disabled={isLocating}
+                            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold rounded-xl inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>{isLocating ? 'Locating...' : language === 'hi' ? 'मेरा स्थान उपयोग करें' : 'Use My Location'}</span>
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={geoPlace}
+                          onChange={(e) => setGeoPlace(e.target.value)}
+                          placeholder={language === 'hi' ? 'स्थान का विवरण (जैसे वार्ड 5, मुख्य सड़क)' : 'Place description (e.g. Ward 5, main road)'}
+                          className="w-full px-3 py-2 mt-2 text-xs border border-slate-300 rounded-xl outline-none"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-1">
+                          {language === 'hi'
+                            ? '*सर्वर टाइमस्टैम्प सबमिट के समय स्वतः संग्रहीत होता है।'
+                            : '*A server timestamp is stored automatically at submission time.'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -585,10 +885,16 @@ export const AuthorityDashboard: React.FC = () => {
                     </button>
                     <button
                       type="submit"
-                      disabled={isApplying || (selectedStatus === 'resolved' && !proofFile)}
-                      className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
+                      disabled={isApplying || (selectedStatus === 'verification_pending' && !proofFile)}
+                      className="px-5 py-2 bg-sky-700 hover:bg-sky-800 text-white font-bold rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
                     >
-                      {isApplying ? 'Saving...' : 'Save & Update Status'}
+                      {isApplying
+                        ? 'Saving...'
+                        : selectedStatus === 'verification_pending'
+                        ? language === 'hi'
+                          ? 'सत्यापन हेतु सबमिट करें'
+                          : 'Submit for Verification'
+                        : 'Save & Update Status'}
                     </button>
                   </div>
                 </form>
@@ -648,6 +954,95 @@ export const AuthorityDashboard: React.FC = () => {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Final Closure Modal (Admin / Higher Authority Only) */}
+      {closeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8">
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-300">
+                  Final Closure Desk · {closeTarget.id}
+                </span>
+                <h3 className="text-base font-bold tracking-tight">{closeTarget.title}</h3>
+              </div>
+              <button
+                onClick={() => setCloseTarget(null)}
+                className="p-1 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900">
+                {closeTarget.closure?.photoUrl ? (
+                  <img
+                    src={closeTarget.closure.photoUrl}
+                    alt="Evidence"
+                    className="w-14 h-14 rounded-lg object-cover border border-amber-200"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : null}
+                <div className="space-y-0.5">
+                  <p className="font-bold">
+                    {closeTarget.status === 'disputed'
+                      ? language === 'hi'
+                        ? 'नागरिक ने समस्या की रिपोर्ट की — समीक्षा के बाद ही बंद करें'
+                        : 'Citizen reported an issue — review before closing'
+                      : language === 'hi'
+                      ? 'नागरिक ने कार्य पूर्ण होने की पुष्टि की'
+                      : 'Citizen confirmed the work is complete'}
+                  </p>
+                  <p className="text-amber-800">
+                    {closeTarget.closure?.submittedByName
+                      ? `${t.evidenceUploadedBy}: ${closeTarget.closure.submittedByName} · ${closeTarget.closure.submittedAt}`
+                      : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  {language === 'hi' ? 'अंतिम समापन टिप्पणी (वैकल्पिक):' : 'Final Closure Remark (optional):'}
+                </label>
+                <textarea
+                  rows={3}
+                  value={closeRemark}
+                  onChange={(e) => setCloseRemark(e.target.value)}
+                  placeholder={language === 'hi' ? 'सत्यापन के बाद अंतिम रूप से बंद करने की टिप्पणी...' : 'Note to append to the audit trail before final closure...'}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl outline-none leading-relaxed"
+                />
+              </div>
+
+              <p className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 leading-relaxed">
+                {language === 'hi'
+                  ? 'अंतिम बंद करने पर complaint_status एवं complaint_closure दोनों में ऑडिट ट्रेल संग्रहीत होगा — किसने सत्यापित किया और कब अंतिम रूप से बंद हुई।'
+                  : 'Final closure will append an audit trail record to complaint_status and complaint_closure — who verified it and when it was finally closed.'}
+              </p>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCloseTarget(null)}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseComplaint}
+                  disabled={isApplying}
+                  className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  <BadgeCheck className="w-4 h-4" />
+                  <span>{isApplying ? 'Closing...' : language === 'hi' ? 'अंतिम रूप से बंद करें' : 'Confirm Final Closure'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

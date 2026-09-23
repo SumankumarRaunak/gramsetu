@@ -217,12 +217,12 @@ export const TrackComplaintPage: React.FC = () => {
                     <div className="text-xs">
                       <p className="font-bold text-slate-800 capitalize flex flex-wrap items-center gap-2">
                         <span>{ev.status.replace(/_/g, ' ')}</span>
-                        {ev.status === 'RESOLVED' && (
+                        {ev.status === 'RESOLVED' || ev.status === 'CLOSED' ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
                             <CheckCircle2 className="w-3 h-3" />
                             {language === 'hi' ? 'समस्या हल' : 'Problem Solved'}
                           </span>
-                        )}
+                        ) : null}
                       </p>
                       <p className="text-slate-600">
                         {ev.remarks} · <span className="font-mono text-[10px] text-slate-400">{ev.created_at.slice(0, 16).replace('T', ' ')}</span>

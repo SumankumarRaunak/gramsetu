@@ -11,6 +11,9 @@ import {
   Mail,
   Zap,
   RotateCcw,
+  BadgeCheck,
+  AlertTriangle,
+  Lock,
 } from 'lucide-react';
 
 export const NotificationsPage: React.FC = () => {
@@ -41,6 +44,12 @@ export const NotificationsPage: React.FC = () => {
         return <RotateCcw className="w-5 h-5 text-emerald-700" />;
       case 'resolved':
         return <CheckCircle2 className="w-5 h-5 text-emerald-700" />;
+      case 'verification_pending':
+        return <BadgeCheck className="w-5 h-5 text-sky-600" />;
+      case 'disputed':
+        return <AlertTriangle className="w-5 h-5 text-rose-600" />;
+      case 'closed':
+        return <Lock className="w-5 h-5 text-emerald-700" />;
       case 'feedback_required':
         return <Sparkles className="w-5 h-5 text-emerald-700" />;
       default:

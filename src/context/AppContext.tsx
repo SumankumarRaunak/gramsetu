@@ -14,9 +14,12 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import {
   AuthorityRow,
+  callCloseComplaint,
   callForward,
   callReject,
+  callRespondVerification,
   callSubmitFeedback,
+  callSubmitForVerification,
   callUpdateStatus,
   callVerify,
   fetchAuthorities,
@@ -75,6 +78,13 @@ interface AppContextType {
   forwardComplaint: (id: string, targetTier: AuthorityTier | string, reason: string) => Promise<void>;
   verifyComplaint: (id: string, remark?: string) => Promise<void>;
   rejectComplaint: (id: string, remark?: string) => Promise<void>;
+  submitForVerification: (
+    id: string,
+    evidence: { photoUrl: string; videoUrl?: string; lat?: number | null; lng?: number | null; place?: string },
+    remark?: string
+  ) => Promise<void>;
+  respondToVerification: (id: string, response: 'confirmed' | 'disputed', remarks?: string) => Promise<void>;
+  closeComplaint: (id: string, remarks?: string) => Promise<void>;
   simulateAutoEscalation: (id: string) => Promise<void>;
   submitFeedback: (id: string, rating: number, status: 'yes' | 'partially' | 'no', comment: string) => Promise<void>;
   markNotificationRead: (id: string) => void;
@@ -364,16 +374,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const notifications = useMemo<NotificationItem[]>(() => {
     if (role !== 'citizen') return notificationsRef.current;
     const items: NotificationItem[] = [];
-    const notifType: Record<string, NotificationItem['type']> = {
-      SUBMITTED: 'received',
-      UNDER_REVIEW: 'received',
-      VERIFIED: 'status_updated',
-      FORWARDED: 'forwarded',
-      ASSIGNED: 'forwarded',
-      IN_PROGRESS: 'status_updated',
-      RESOLVED: 'resolved',
-      CLOSED: 'resolved',
-      REJECTED: 'status_updated',
+    const uiToNotif: Record<ComplaintStatus, NotificationItem['type']> = {
+      pending: 'received',
+      in_progress: 'status_updated',
+      forwarded: 'forwarded',
+      verification_pending: 'verification_pending',
+      citizen_confirmed: 'closed',
+      disputed: 'disputed',
+      resolved: 'resolved',
+      rejected: 'status_updated',
     };
     const labelEn: Record<string, string> = {
       SUBMITTED: 'Complaint Received',
@@ -382,6 +391,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       FORWARDED: 'Complaint Forwarded',
       ASSIGNED: 'Complaint Assigned',
       IN_PROGRESS: 'Status Update: In Progress',
+      VERIFICATION_PENDING: 'Work Completed – Verification Pending',
+      CITIZEN_CONFIRMED: 'Complaint Awaiting Final Closure',
+      DISPUTED: 'Issue Reported – Sent to Higher Authority',
       RESOLVED: 'Complaint Resolved',
       CLOSED: 'Complaint Closed',
       REJECTED: 'Complaint Status Update',
@@ -400,7 +412,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           message: ev.description,
           messageHi: ev.descriptionHi,
           timestamp: ev.timestamp,
-          type: notifType[key] || 'status_updated',
+          type: uiToNotif[ev.status] || 'status_updated',
           read: readNotifs.has(nid),
         });
       });
@@ -625,6 +637,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [refreshComplaints]
   );
 
+  const submitForVerification = useCallback(
+    async (
+      id: string,
+      evidence: { photoUrl: string; videoUrl?: string; lat?: number | null; lng?: number | null; place?: string },
+      remark?: string
+    ) => {
+      const dbId = resolveDbId(id);
+      if (!dbId) throw new Error('Complaint not found');
+      await callSubmitForVerification(dbId, { ...evidence, remarks: remark });
+      await refreshComplaints();
+    },
+    [refreshComplaints]
+  );
+
+  const respondToVerification = useCallback(
+    async (id: string, response: 'confirmed' | 'disputed', remarks?: string) => {
+      const dbId = resolveDbId(id);
+      if (!dbId) throw new Error('Complaint not found');
+      await callRespondVerification(dbId, response === 'confirmed' ? 'CONFIRMED' : 'DISPUTED', remarks);
+      await refreshComplaints();
+    },
+    [refreshComplaints]
+  );
+
+  const closeComplaint = useCallback(
+    async (id: string, remarks?: string) => {
+      const dbId = resolveDbId(id);
+      if (!dbId) throw new Error('Complaint not found');
+      await callCloseComplaint(dbId, remarks);
+      await refreshComplaints();
+    },
+    [refreshComplaints]
+  );
+
   const rejectComplaint = useCallback(
     async (id: string, remark?: string) => {
       const dbId = resolveDbId(id);
@@ -715,6 +761,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         forwardComplaint,
         verifyComplaint,
         rejectComplaint,
+        submitForVerification,
+        respondToVerification,
+        closeComplaint,
         simulateAutoEscalation,
         submitFeedback,
         markNotificationRead,

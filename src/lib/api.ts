@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import {
   AuthorityTier,
+  ClosureRecord,
   Complaint,
   ComplaintCategory,
   ComplaintPriority,
@@ -69,6 +70,27 @@ export interface FeedbackRow {
   submitted_at: string;
 }
 
+export interface ClosureRow {
+  id: number;
+  complaint_id: number;
+  submitted_by: string | null;
+  submitted_by_name: string;
+  submitted_by_role: string;
+  photo_url: string;
+  video_url: string;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_place: string;
+  submitted_at: string;
+  citizen_response: string | null;
+  citizen_remarks: string;
+  citizen_responded_at: string | null;
+  verified_by_name: string;
+  verified_by_role: string;
+  verified_at: string | null;
+  closed_at: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Status / category mapping
 // ---------------------------------------------------------------------------
@@ -80,6 +102,9 @@ const DB_TO_UI_STATUS: Record<string, ComplaintStatus> = {
   FORWARDED: 'forwarded',
   ASSIGNED: 'forwarded',
   IN_PROGRESS: 'in_progress',
+  VERIFICATION_PENDING: 'verification_pending',
+  CITIZEN_CONFIRMED: 'citizen_confirmed',
+  DISPUTED: 'disputed',
   RESOLVED: 'resolved',
   CLOSED: 'resolved',
   REJECTED: 'rejected',
@@ -92,6 +117,18 @@ export const STATUS_LABELS: Record<string, { en: string; hi: string }> = {
   FORWARDED: { en: 'Forwarded to Official', hi: 'संबंधित अधिकारी को अग्रेषित' },
   ASSIGNED: { en: 'Assigned to Field Officer', hi: 'क्षेत्रीय अधिकारी को सौंपा गया' },
   IN_PROGRESS: { en: 'Action In Progress', hi: 'कार्रवाई प्रक्रियाधीन' },
+  VERIFICATION_PENDING: {
+    en: 'Work Completed – Verification Pending',
+    hi: 'कार्य पूर्ण – सत्यापन लंबित',
+  },
+  CITIZEN_CONFIRMED: {
+    en: 'Citizen Confirmed – Awaiting Final Closure',
+    hi: 'नागरिक द्वारा पुष्टि – अंतिम समापन लंबित',
+  },
+  DISPUTED: {
+    en: 'Issue Reported – Higher Authority Review Queue',
+    hi: 'समस्या सूचित – उच्चाधिकारी समीक्षा कतार',
+  },
   RESOLVED: { en: 'Problem Solved', hi: 'समस्या हल हो गई' },
   CLOSED: { en: 'Complaint Closed', hi: 'शिकायत बंद' },
   REJECTED: { en: 'Complaint Rejected', hi: 'शिकायत खारिज की गई' },
@@ -105,8 +142,14 @@ export const UItoDbStatus = (status: ComplaintStatus): string => {
       return 'IN_PROGRESS';
     case 'forwarded':
       return 'FORWARDED';
+    case 'verification_pending':
+      return 'VERIFICATION_PENDING';
+    case 'citizen_confirmed':
+      return 'CITIZEN_CONFIRMED';
+    case 'disputed':
+      return 'DISPUTED';
     case 'resolved':
-      return 'RESOLVED';
+      return 'CLOSED';
     case 'rejected':
       return 'REJECTED';
   }
@@ -284,6 +327,7 @@ export async function fetchComplaints(opts: {
 
   const timeline = await fetchTimelines(rows.map((r) => r.id));
   const feedback = await fetchFeedback(rows.map((r) => r.id));
+  const closures = await fetchClosures(rows.map((r) => r.id));
   const categories = await getCategories();
   const catById = new Map(categories.map((c) => [c.id, c]));
 
@@ -325,10 +369,36 @@ export async function fetchComplaints(opts: {
         comment: t.remarks,
       }));
 
-    const resolution = (timeline[row.id] || []).find((t) => t.status === 'RESOLVED' && t.photo_url);
-    const resolutionRemarks = (timeline[row.id] || []).find((t) => t.status === 'RESOLVED');
+    const resolution = (timeline[row.id] || []).find(
+      (t) => (t.status === 'RESOLVED' || t.status === 'VERIFICATION_PENDING') && t.photo_url
+    );
+    const resolutionRemarks = (timeline[row.id] || []).find(
+      (t) => t.status === 'RESOLVED' || t.status === 'VERIFICATION_PENDING'
+    );
 
     const fb = feedback[row.id];
+    const closure = closures[row.id]?.[0];
+
+    const toClosure = (k: ClosureRow): ClosureRecord => ({
+      id: k.id,
+      submittedBy: k.submitted_by || undefined,
+      submittedByName: k.submitted_by_name,
+      submittedByRole: k.submitted_by_role,
+      photoUrl: k.photo_url ? publicUrl(k.photo_url) : undefined,
+      videoUrl: k.video_url ? publicUrl(k.video_url) : undefined,
+      locationLat: k.location_lat,
+      locationLng: k.location_lng,
+      locationPlace: k.location_place,
+      submittedAt: fmtTs(k.submitted_at),
+      citizenResponse: k.citizen_response === 'CONFIRMED' ? 'confirmed' : k.citizen_response === 'DISPUTED' ? 'disputed' : undefined,
+      citizenRemarks: k.citizen_remarks || undefined,
+      citizenRespondedAt: k.citizen_responded_at ? fmtTs(k.citizen_responded_at) : undefined,
+      verifiedByName: k.verified_by_name || undefined,
+      verifiedByRole: k.verified_by_role || undefined,
+      verifiedAt: k.verified_at ? fmtTs(k.verified_at) : undefined,
+      closedAt: k.closed_at ? fmtTs(k.closed_at) : undefined,
+    });
+
     const priority = row.priority === 'normal' || row.priority === 'important' || row.priority === 'urgent'
       ? (row.priority as ComplaintPriority)
       : 'normal';
@@ -365,6 +435,7 @@ export async function fetchComplaints(opts: {
       resolutionProofUrl: resolution?.photo_url ? publicUrl(resolution.photo_url) : undefined,
       resolutionRemarks: resolutionRemarks?.remarks || '',
       resolvedAt: dateOnly(row.resolved_at),
+      closure: closure ? toClosure(closure) : undefined,
       feedback: fb
         ? {
             resolvedStatus: fb.rating >= 4 ? 'yes' : fb.rating === 3 ? 'partially' : 'no',
@@ -388,6 +459,25 @@ async function fetchTimelines(complaintIds: number[]): Promise<Record<number, Ti
   const map: Record<number, TimelineRow[]> = {};
   for (const t of (data as TimelineRow[]) || []) {
     (map[t.complaint_id] = map[t.complaint_id] || []).push(t);
+  }
+  return map;
+}
+
+async function fetchClosures(complaintIds: number[]): Promise<Record<number, ClosureRow[]>> {
+  if (!complaintIds.length) return {};
+  const { data, error } = await supabase
+    .from('complaint_closure')
+    .select(
+      'id,complaint_id,submitted_by,submitted_by_name,submitted_by_role,photo_url,video_url,' +
+        'location_lat,location_lng,location_place,submitted_at,citizen_response,citizen_remarks,' +
+        'citizen_responded_at,verified_by_name,verified_by_role,verified_at,closed_at'
+    )
+    .in('complaint_id', complaintIds)
+    .order('submitted_at', { ascending: false });
+  if (error) throw error;
+  const map: Record<number, ClosureRow[]> = {};
+  for (const k of ((data as unknown) ?? []) as ClosureRow[]) {
+    (map[k.complaint_id] = map[k.complaint_id] || []).push(k);
   }
   return map;
 }
@@ -497,6 +587,52 @@ export async function callSubmitFeedback(complaintId: number, rating: number, co
     p_complaint_id: complaintId,
     p_rating: rating,
     p_comment: comment,
+  });
+  if (error) throw error;
+}
+
+export interface VerificationEvidence {
+  photoUrl: string;
+  videoUrl?: string;
+  lat?: number | null;
+  lng?: number | null;
+  place?: string;
+  remarks?: string;
+}
+
+export async function callSubmitForVerification(
+  complaintId: number,
+  evidence: VerificationEvidence
+): Promise<void> {
+  const { error } = await supabase.rpc('submit_for_verification', {
+    p_complaint_id: complaintId,
+    p_photo_url: evidence.photoUrl,
+    p_video_url: evidence.videoUrl || '',
+    p_lat: evidence.lat ?? null,
+    p_lng: evidence.lng ?? null,
+    p_place: evidence.place || '',
+    p_remarks: evidence.remarks || '',
+  });
+  if (error) throw error;
+}
+
+export async function callRespondVerification(
+  complaintId: number,
+  response: 'CONFIRMED' | 'DISPUTED',
+  remarks?: string
+): Promise<void> {
+  const { error } = await supabase.rpc('citizen_respond_verification', {
+    p_complaint_id: complaintId,
+    p_response: response,
+    p_remarks: remarks || '',
+  });
+  if (error) throw error;
+}
+
+export async function callCloseComplaint(complaintId: number, remarks?: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_close_complaint', {
+    p_complaint_id: complaintId,
+    p_remarks: remarks || '',
   });
   if (error) throw error;
 }

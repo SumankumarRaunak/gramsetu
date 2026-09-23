@@ -2,7 +2,15 @@ export type UserRole = 'admin' | 'citizen' | 'panchayat_officer' | 'mukhiya' | '
 
 export type Language = 'en' | 'hi';
 
-export type ComplaintStatus = 'pending' | 'in_progress' | 'forwarded' | 'resolved' | 'rejected';
+export type ComplaintStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'forwarded'
+  | 'verification_pending'
+  | 'citizen_confirmed'
+  | 'disputed'
+  | 'resolved'
+  | 'rejected';
 
 export type ComplaintPriority = 'normal' | 'important' | 'urgent';
 
@@ -99,12 +107,33 @@ export interface Complaint {
   resolutionProofUrl?: string;
   resolutionRemarks?: string;
   resolvedAt?: string;
+  closure?: ClosureRecord;
   feedback?: {
     resolvedStatus: 'yes' | 'partially' | 'no';
     rating: number; // 1-5
     comment: string;
     submittedAt: string;
   };
+}
+
+export interface ClosureRecord {
+  id: number;
+  submittedBy?: string;
+  submittedByName: string;
+  submittedByRole: string;
+  photoUrl?: string;
+  videoUrl?: string;
+  locationLat?: number | null;
+  locationLng?: number | null;
+  locationPlace?: string;
+  submittedAt: string; // server timestamp
+  citizenResponse?: 'confirmed' | 'disputed';
+  citizenRemarks?: string;
+  citizenRespondedAt?: string;
+  verifiedByName?: string;
+  verifiedByRole?: string;
+  verifiedAt?: string;
+  closedAt?: string;
 }
 
 export interface NotificationItem {
@@ -115,7 +144,7 @@ export interface NotificationItem {
   message: string;
   messageHi: string;
   timestamp: string;
-  type: 'received' | 'forwarded' | 'status_updated' | 'resolved' | 'feedback_required';
+  type: 'received' | 'forwarded' | 'status_updated' | 'resolved' | 'verification_pending' | 'disputed' | 'closed' | 'feedback_required';
   read: boolean;
 }
 

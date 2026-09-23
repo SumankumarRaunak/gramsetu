@@ -15,6 +15,11 @@ import {
   Sparkles,
   Star,
   Check,
+  Video,
+  ThumbsUp,
+  Flag,
+  BadgeCheck,
+  Lock,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -24,6 +29,7 @@ export const ComplaintDetailsPage: React.FC = () => {
   const {
     selectedComplaint,
     simulateAutoEscalation,
+    respondToVerification,
     setCurrentPage,
     language,
     t,
@@ -31,6 +37,9 @@ export const ComplaintDetailsPage: React.FC = () => {
 
   const [showReceipt, setShowReceipt] = useState(false);
   const [escalating, setEscalating] = useState(false);
+  const [reportIssueOpen, setReportIssueOpen] = useState(false);
+  const [reportRemarks, setReportRemarks] = useState('');
+  const [responding, setResponding] = useState(false);
 
   if (!selectedComplaint) {
     return (
@@ -155,7 +164,7 @@ export const ComplaintDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          {c.status !== 'resolved' && c.currentAuthority !== 'DM / District Authority' && (
+          {c.status !== 'resolved' && c.status !== 'disputed' && c.currentAuthority !== 'DM / District Authority' && (
             <button
               onClick={handleSimulateEscalation}
               disabled={escalating}
@@ -166,6 +175,121 @@ export const ComplaintDetailsPage: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Complaint Closure Verification - Citizen Response */}
+        {c.status === 'verification_pending' && (
+          <div className="p-4 sm:p-5 bg-sky-50 border border-sky-300 rounded-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-sky-600 text-white shrink-0 mt-0.5">
+                <BadgeCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-sky-950">{t.verificationBannerTitle}</h4>
+                <p className="text-[11px] text-sky-900 leading-relaxed max-w-2xl mt-0.5">
+                  {t.verificationBannerSub}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                type="button"
+                disabled={responding}
+                onClick={async () => {
+                  setResponding(true);
+                  try {
+                    await respondToVerification(c.id, 'confirmed');
+                  } catch (err) {
+                    alert((err as Error)?.message || 'Failed to record your confirmation.');
+                  } finally {
+                    setResponding(false);
+                  }
+                }}
+                className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <ThumbsUp className="w-3.5 h-3.5" />
+                <span>{responding ? '...' : t.btnConfirmWork}</span>
+              </button>
+
+              {!reportIssueOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setReportIssueOpen(true)}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  <span>{t.btnReportIssue}</span>
+                </button>
+              ) : (
+                <div className="flex-1 space-y-2">
+                  <p className="text-[11px] font-bold text-rose-900">{t.reportIssueHint}</p>
+                  <textarea
+                    rows={2}
+                    value={reportRemarks}
+                    onChange={(e) => setReportRemarks(e.target.value)}
+                    placeholder={t.reportIssuePlaceholder}
+                    className="w-full px-3 py-2 text-xs border border-rose-300 rounded-xl outline-none leading-relaxed"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={responding}
+                      onClick={async () => {
+                        setResponding(true);
+                        try {
+                          await respondToVerification(c.id, 'disputed', reportRemarks);
+                        } catch (err) {
+                          alert((err as Error)?.message || 'Failed to record your issue report.');
+                        } finally {
+                          setResponding(false);
+                        }
+                      }}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Flag className="w-3.5 h-3.5" />
+                      <span>{responding ? '...' : language === 'hi' ? 'समस्या रिपोर्ट सबमिट करें' : 'Submit Issue Report'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReportIssueOpen(false)}
+                      className="px-4 py-2 text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] text-sky-800 flex items-center gap-1">
+              <Lock className="w-3 h-3" /> {language === 'hi' ? 'इस चरण के बिना शिकायत अंतिम रूप से बंद नहीं होगी।' : 'Without this step the complaint will never be finally closed.'}
+            </p>
+          </div>
+        )}
+
+        {c.status === 'citizen_confirmed' && (
+          <div className="p-4 sm:p-5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0 mt-0.5">
+              <ThumbsUp className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-emerald-950">{t.verificationAwaitClosureTitle}</h4>
+              <p className="text-[11px] text-emerald-900 leading-relaxed mt-0.5">{t.verificationAwaitClosureSub}</p>
+            </div>
+          </div>
+        )}
+
+        {c.status === 'disputed' && (
+          <div className="p-4 sm:p-5 bg-rose-50 border border-rose-300 rounded-2xl flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-rose-600 text-white shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-rose-950">{t.verificationDisputedTitle}</h4>
+              <p className="text-[11px] text-rose-900 leading-relaxed mt-0.5">{t.verificationDisputedSub}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Grid: Status Timeline + Evidence/Proof */}
@@ -260,23 +384,137 @@ export const ComplaintDetailsPage: React.FC = () => {
 
         {/* Right: Evidence & Official Remarks (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Resolution Proof Card */}
-          {c.resolutionProofUrl && (
+          {/* Closure Evidence / Resolution Proof Card */}
+          {(c.closure || c.resolutionProofUrl) && (
             <div className="bg-white rounded-3xl p-5 border border-emerald-200 shadow-lg space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>{language === 'hi' ? 'समस्या हल हो गई — समाधान प्रमाण' : 'Problem Solved — Resolution Proof'}</span>
+                <span>
+                  {c.status === 'verification_pending'
+                    ? language === 'hi'
+                      ? 'कार्य समापन प्रमाण — सत्यापन लंबित'
+                      : 'Work Completion Evidence — Verification Pending'
+                    : c.status === 'citizen_confirmed'
+                    ? language === 'hi'
+                      ? 'कार्य समापन प्रमाण — नागरिक पुष्टि'
+                      : 'Work Completion Evidence — Citizen Confirmed'
+                    : language === 'hi'
+                    ? 'समस्या हल — समाधान प्रमाण'
+                    : 'Problem Solved — Resolution Proof'}
+                </span>
               </div>
-              <img
-                src={c.resolutionProofUrl}
-                alt="Resolution proof"
-                className="w-full h-48 rounded-2xl object-cover border border-emerald-200 shadow-xs"
-                referrerPolicy="no-referrer"
-              />
-              {c.resolutionRemarks && (
+
+              {c.closure?.photoUrl ? (
+                <img
+                  src={c.closure.photoUrl}
+                  alt="Work completion proof"
+                  className="w-full h-48 rounded-2xl object-cover border border-emerald-200 shadow-xs"
+                  referrerPolicy="no-referrer"
+                />
+              ) : c.resolutionProofUrl ? (
+                <img
+                  src={c.resolutionProofUrl}
+                  alt="Resolution proof"
+                  className="w-full h-48 rounded-2xl object-cover border border-emerald-200 shadow-xs"
+                  referrerPolicy="no-referrer"
+                />
+              ) : null}
+
+              {c.resolutionRemarks && !c.closure?.submittedAt && (
                 <p className="text-xs text-slate-700 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 leading-relaxed">
                   {c.resolutionRemarks}
                 </p>
+              )}
+
+              {c.closure && (
+                <div className="space-y-2 text-[11px] text-slate-600">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">{t.evidenceUploadedBy}:</span>
+                    <span className="font-bold text-slate-800 text-right">
+                      {c.closure.submittedByName} ({c.closure.submittedByRole || 'Authority'})
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">{t.evidenceServerTime}:</span>
+                    <span className="font-mono font-semibold text-slate-700">{c.closure.submittedAt}</span>
+                  </div>
+                  {(c.closure.locationPlace || (c.closure.locationLat && c.closure.locationLng)) && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-emerald-700" /> {t.evidenceLocation}:
+                      </span>
+                      <span className="font-semibold text-slate-700 text-right">
+                        {c.closure.locationPlace || `${c.closure.locationLat}, ${c.closure.locationLng}`}
+                      </span>
+                    </div>
+                  )}
+                  {c.closure.videoUrl && (
+                    <a
+                      href={c.closure.videoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 font-bold text-sky-700 hover:underline"
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      {language === 'hi' ? 'वीडियो प्रमाण देखें' : 'View video evidence'}
+                    </a>
+                  )}
+
+                  {c.closure.citizenResponse && (
+                    <div
+                      className={`p-2.5 rounded-xl border ${
+                        c.closure.citizenResponse === 'confirmed'
+                          ? 'bg-emerald-50 border-emerald-200'
+                          : 'bg-rose-50 border-rose-200'
+                      }`}
+                    >
+                      <p
+                        className={
+                          c.closure.citizenResponse === 'confirmed' ? 'text-emerald-900 font-bold' : 'text-rose-900 font-bold'
+                        }
+                      >
+                        {t.citizenResponse}:{' '}
+                        {c.closure.citizenResponse === 'confirmed'
+                          ? language === 'hi'
+                            ? 'पुष्टि — कार्य पूर्ण'
+                            : 'CONFIRMED — Work done'
+                          : language === 'hi'
+                          ? 'समस्या रिपोर्ट की गई'
+                          : 'DISPUTED — Issue reported'}
+                      </p>
+                      {c.closure.citizenRemarks && (
+                        <p className="text-[11px] mt-1 leading-relaxed">"{c.closure.citizenRemarks}"</p>
+                      )}
+                      {c.closure.citizenRespondedAt && (
+                        <p className="text-[10px] font-mono text-slate-500 mt-1">{c.closure.citizenRespondedAt}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {c.status === 'resolved' && (
+                    <div className="p-2.5 rounded-xl bg-slate-900 text-white space-y-1">
+                      <p className="text-[10px] text-emerald-300 font-bold uppercase tracking-wide flex items-center gap-1">
+                        <BadgeCheck className="w-3.5 h-3.5" /> Final Closure Audit
+                      </p>
+                      <p>
+                        {t.closureFinalBy}:{' '}
+                        <strong>
+                          {c.closure.verifiedByName || 'System Admin'} ({c.closure.verifiedByRole || 'ADMIN'})
+                        </strong>
+                      </p>
+                      {c.closure.verifiedAt && (
+                        <p className="text-[10px] text-slate-300">
+                          {t.verifiedOn}: {c.closure.verifiedAt}
+                        </p>
+                      )}
+                      {c.closure.closedAt && (
+                        <p className="text-[10px] text-slate-300">
+                          {t.finalClosedOn}: {c.closure.closedAt}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
