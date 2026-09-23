@@ -1,0 +1,6 @@
+{
+  "name": "Smart Village Complaint Management System",
+  "description": "Citizen portal to report village problems, track multi-tier escalation from Gram Panchayat Officer to Mukhiya, Block Officer, and DM, with real-time status timelines and resolution proofs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
