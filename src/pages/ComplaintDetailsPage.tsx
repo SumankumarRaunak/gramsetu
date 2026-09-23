@@ -8,11 +8,7 @@ import {
   MapPin,
   Calendar,
   Printer,
-  ArrowRight,
   MessageSquare,
-  ChevronDown,
-  RotateCcw,
-  Sparkles,
   Star,
   Check,
   Video,
@@ -23,12 +19,10 @@ import {
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { StatusBadge } from '../components/StatusBadge';
-import { ComplaintStatus } from '../types';
 
 export const ComplaintDetailsPage: React.FC = () => {
   const {
     selectedComplaint,
-    simulateAutoEscalation,
     respondToVerification,
     setCurrentPage,
     language,
@@ -36,7 +30,6 @@ export const ComplaintDetailsPage: React.FC = () => {
   } = useApp();
 
   const [showReceipt, setShowReceipt] = useState(false);
-  const [escalating, setEscalating] = useState(false);
   const [reportIssueOpen, setReportIssueOpen] = useState(false);
   const [reportRemarks, setReportRemarks] = useState('');
   const [responding, setResponding] = useState(false);
@@ -56,14 +49,6 @@ export const ComplaintDetailsPage: React.FC = () => {
   }
 
   const c = selectedComplaint;
-
-  const handleSimulateEscalation = () => {
-    setEscalating(true);
-    setTimeout(() => {
-      simulateAutoEscalation(c.id);
-      setEscalating(false);
-    }, 350);
-  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -146,34 +131,21 @@ export const ComplaintDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 7-Day Auto-Escalation Rule & Simulator */}
-        <div className="p-4 sm:p-5 bg-amber-50 border border-amber-300/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-amber-200/70 text-amber-900 shrink-0 mt-0.5">
-              <Clock className="w-5 h-5 text-amber-800" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-amber-950">
-                {language === 'hi' ? '7-दिवसीय स्वचालित अग्रेषण नियम' : '7-Day Statutory Non-Action Escalation Rule'}
-              </h4>
-              <p className="text-[11px] text-amber-900 leading-relaxed max-w-xl mt-0.5">
-                {language === 'hi'
-                  ? 'यदि 7 दिन में पंचायत पदाधिकारी कार्रवाई नहीं करते, तो पोर्टल इसे स्वतः मुखिया जी और फिर प्रखंड पदाधिकारी को अग्रेषित करता है।'
-                  : 'If the assigned officer does not act within 7 days, the system automatically transfers the case to Mukhiya → Block Officer → DM.'}
-              </p>
-            </div>
+        {/* 7-Day Auto-Escalation Rule */}
+        <div className="p-4 sm:p-5 bg-amber-50 border border-amber-300/80 rounded-2xl flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-amber-200/70 text-amber-900 shrink-0 mt-0.5">
+            <Clock className="w-5 h-5 text-amber-800" />
           </div>
-
-          {c.status !== 'resolved' && c.status !== 'disputed' && c.currentAuthority !== 'DM / District Authority' && (
-            <button
-              onClick={handleSimulateEscalation}
-              disabled={escalating}
-              className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <RotateCcw className={`w-3.5 h-3.5 ${escalating ? 'animate-spin' : ''}`} />
-              <span>{language === 'hi' ? '7-दिन समय सीमा समाप्त का परीक्षण करें' : 'Simulate 7-Day Expiry'}</span>
-            </button>
-          )}
+          <div>
+            <h4 className="text-xs font-bold text-amber-950">
+              {language === 'hi' ? '7-दिवसीय स्वचालित अग्रेषण नियम' : '7-Day Statutory Non-Action Escalation Rule'}
+            </h4>
+            <p className="text-[11px] text-amber-900 leading-relaxed mt-0.5">
+              {language === 'hi'
+                ? 'यदि 7 दिन में पंचायत पदाधिकारी कार्रवाई नहीं करते, तो पोर्टल इसे स्वतः मुखिया जी और फिर प्रखंड पदाधिकारी को अग्रेषित करता है।'
+                : 'If the assigned officer does not act within 7 days, the system automatically escalates the case to Mukhiya → Block Officer → DM for review.'}
+            </p>
+          </div>
         </div>
 
         {/* Complaint Closure Verification - Citizen Response */}

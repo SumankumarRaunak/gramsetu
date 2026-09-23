@@ -109,8 +109,21 @@ export const AuthorityDashboard: React.FC = () => {
 
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
-      setSuccessToast('Geolocation is not supported in this browser.');
-      setTimeout(() => setSuccessToast(''), 3500);
+      setSuccessToast(
+        language === 'hi'
+          ? 'इस ब्राउज़र में जियोलोकेशन सपोर्ट नहीं है। आप जगह/स्थान का नाम मैन्युअल भर सकते हैं।'
+          : 'Geolocation is not supported in this browser. You can enter the place name manually.'
+      );
+      setTimeout(() => setSuccessToast(''), 4500);
+      return;
+    }
+    if (!window.isSecureContext) {
+      setSuccessToast(
+        language === 'hi'
+          ? 'स्थान लेने के लिए सुरक्षित कनेक्शन (https://) आवश्यक है। पोर्टल की https पर तैनाती के बाद यह काम करेगा अथवा localhost पर परीक्षण करें।'
+          : 'Location requires a secure connection (HTTPS). It will work after deployment on HTTPS or when testing on localhost.'
+      );
+      setTimeout(() => setSuccessToast(''), 4500);
       return;
     }
     setIsLocating(true);
@@ -119,13 +132,27 @@ export const AuthorityDashboard: React.FC = () => {
         setGeoLat(pos.coords.latitude.toFixed(6));
         setGeoLng(pos.coords.longitude.toFixed(6));
         setIsLocating(false);
+        if (!geoPlace) {
+          setSuccessToast(
+            language === 'hi'
+              ? `स्थान प्राप्त हुआ: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
+              : `Location captured: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
+          );
+          setTimeout(() => setSuccessToast(''), 4000);
+        }
       },
       (err) => {
-        setSuccessToast(`Location unavailable: ${err.message}`);
+        const denied =
+          err.code === err.PERMISSION_DENIED
+            ? language === 'hi'
+              ? 'स्थान अनुमति अस्वीकृत। ब्राउज़र/डिवाइस सेटिंग में स्थान अनुमति दें और दोबारा प्रयास करें।'
+              : 'Location permission was denied. Please allow location access in your browser/device settings and try again.'
+            : `Location unavailable: ${err.message}`;
+        setSuccessToast(denied);
         setIsLocating(false);
-        setTimeout(() => setSuccessToast(''), 3500);
+        setTimeout(() => setSuccessToast(''), 6000);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000 }
     );
   };
 

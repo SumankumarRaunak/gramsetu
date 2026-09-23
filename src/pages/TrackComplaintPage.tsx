@@ -119,22 +119,6 @@ export const TrackComplaintPage: React.FC = () => {
               {isSearching ? 'Searching...' : t.btnSearch}
             </button>
           </div>
-
-          {complaints.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span>Your quick test files:</span>
-              {complaints.slice(0, 6).map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSearchId(c.id)}
-                  className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 rounded-lg text-xs font-mono border border-slate-200 transition-colors cursor-pointer"
-                >
-                  {c.id}
-                </button>
-              ))}
-            </div>
-          )}
         </form>
       </div>
 

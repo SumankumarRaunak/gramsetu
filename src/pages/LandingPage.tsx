@@ -279,24 +279,6 @@ export const LandingPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Quick Sample IDs */}
-            <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
-              <span className="text-slate-400 text-[11px]">Recent filings:</span>
-              {complaints.slice(0, 4).map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => {
-                    setHeroTrackInput(c.id);
-                    setHeroTrackResult(c.id);
-                  }}
-                  className="px-2 py-0.5 bg-white/20 hover:bg-emerald-500 hover:text-slate-950 text-white rounded text-[11px] font-mono border border-white/20 transition-colors cursor-pointer"
-                >
-                  {c.id}
-                </button>
-              ))}
-            </div>
-
             {/* Instant Inline Result Card */}
             {heroTrackResult && trackedComplaint && (
               <div className="p-3.5 bg-white text-slate-900 border border-emerald-300 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">

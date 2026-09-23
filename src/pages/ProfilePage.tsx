@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabaseClient';
 import {
@@ -32,6 +32,15 @@ export const ProfilePage: React.FC = () => {
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+
+  useEffect(() => {
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setEditVillage(user.village);
+    setEditWard(user.ward);
+    setEditPanchayat(user.panchayat);
+    setEditMobile(user.mobile);
+  }, [user.name, user.email, user.village, user.ward, user.panchayat, user.mobile]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();

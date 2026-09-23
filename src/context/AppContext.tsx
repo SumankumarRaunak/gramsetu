@@ -274,29 +274,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setRole('citizen');
         setAuthorityId(null);
       } else {
-        // Auth user without a profile row yet: self-heal by creating one.
+        // Auth user without a profile row yet: self-heal by creating one from
+        // the metadata captured at signup time (so village/ward survive).
         const meta = (userRecord.user_metadata || {}) as Record<string, string>;
-        await supabase.from('users').insert({
-          id: userRecord.id,
-          full_name: meta.full_name || meta.name || 'New Citizen',
-          email: userRecord.email || '',
-          phone: meta.phone || '',
-          village: '',
-          ward: '',
-          panchayat: '',
-          block: '',
-          district: '',
-        });
+        const { error: insertErr } = await supabase.from('users').upsert(
+          {
+            id: userRecord.id,
+            full_name: meta.full_name || meta.name || 'New Citizen',
+            email: userRecord.email || '',
+            phone: meta.phone || '',
+            village: meta.village || '',
+            ward: meta.ward || '',
+            panchayat: meta.panchayat || '',
+            block: meta.block || '',
+            district: meta.district || '',
+          },
+          { onConflict: 'id' }
+        );
+        if (insertErr) console.warn('Self-heal profile insert failed', insertErr.message);
+        const reloaded = await fetchUserProfile(userRecord.id);
+        const p = (reloaded?.profile || meta) as Record<string, string>;
         setUser({
           id: userRecord.id,
-          name: meta.full_name || 'New Citizen',
-          email: userRecord.email || '',
-          mobile: meta.phone || '',
-          village: '',
-          ward: '',
-          panchayat: '',
-          block: '',
-          district: '',
+          name: p.full_name || meta.full_name || 'New Citizen',
+          email: p.email || userRecord.email || '',
+          mobile: p.phone || meta.phone || '',
+          village: p.village || meta.village || '',
+          ward: p.ward || meta.ward || '',
+          panchayat: p.panchayat || meta.panchayat || '',
+          block: p.block || meta.block || '',
+          district: p.district || meta.district || '',
           role: 'citizen',
         });
         setRole('citizen');
@@ -486,6 +493,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             full_name: fields.fullName,
             phone: fields.mobile,
             role: 'citizen',
+            village: fields.village,
+            ward: fields.ward,
+            panchayat: fields.panchayat,
+            block: fields.block,
+            district: fields.district,
           },
         },
       });
@@ -493,17 +505,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const needsEmailConfirm = !data.session;
       if (data.session && data.user) {
-        await supabase.from('users').insert({
-          id: data.user.id,
-          full_name: fields.fullName,
-          email: fields.email.trim(),
-          phone: fields.mobile,
-          village: fields.village,
-          ward: fields.ward,
-          panchayat: fields.panchayat,
-          block: fields.block,
-          district: fields.district,
-        });
+        const { error: insertErr } = await supabase.from('users').upsert(
+          {
+            id: data.user.id,
+            full_name: fields.fullName,
+            email: fields.email.trim(),
+            phone: fields.mobile,
+            village: fields.village,
+            ward: fields.ward,
+            panchayat: fields.panchayat,
+            block: fields.block,
+            district: fields.district,
+          },
+          { onConflict: 'id' }
+        );
+        if (insertErr) throw insertErr;
         await loadProfileForUser(data.user);
       }
       return { needsEmailConfirm };

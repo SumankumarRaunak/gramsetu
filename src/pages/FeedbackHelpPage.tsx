@@ -47,6 +47,14 @@ export const FeedbackHelpPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
+    if (!selectedComplaintId) {
+      setSubmitError(
+        language === 'hi'
+          ? 'फीडबैक देने के लिए कृपया पहले कोई शिकायत चुनें (या पहले शिकायत दर्ज करें)।'
+          : 'Please select a complaint to review first — or raise a complaint before giving feedback.'
+      );
+      return;
+    }
     try {
       await submitFeedback(selectedComplaintId, rating, resolvedStatus, comment);
       setSubmittedSuccess(true);
@@ -104,11 +112,19 @@ export const FeedbackHelpPage: React.FC = () => {
                 onChange={(e) => setSelectedComplaintId(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-emerald-600 outline-none"
               >
-                {complaints.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.id} - {c.title} ({c.status.toUpperCase()})
+                {complaints.length === 0 ? (
+                  <option value="" disabled>
+                    {language === 'hi'
+                      ? 'कोई शिकायत नहीं — पहले शिकायत दर्ज करने पर यह सूची भर जाएगी'
+                      : 'No complaints yet — the list fills after you raise a grievance'}
                   </option>
-                ))}
+                ) : (
+                  complaints.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.id} - {c.title} ({c.status.toUpperCase()})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
