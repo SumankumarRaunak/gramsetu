@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { UserCheck, Lock, Mail, Phone, MapPin, CheckCircle2, ShieldCheck, ArrowRight, MailCheck, Eye, EyeOff } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
-  const { setCurrentPage, register, language, t } = useApp();
+  const { setCurrentPage, register, signInWithGoogle, language, t } = useApp();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -26,6 +26,7 @@ export const RegisterPage: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +71,17 @@ export const RegisterPage: React.FC = () => {
       setError((err as Error)?.message || 'Failed to create account. Please try again.');
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setError('');
+    setIsGoogleSubmitting(true);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError((err as Error)?.message || 'Unable to register with Google. Please try again.');
+      setIsGoogleSubmitting(false);
     }
   };
 
@@ -125,14 +137,33 @@ export const RegisterPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               {language === 'hi' ? 'नागरिक खाता बनाएं' : 'Create Your Citizen Account'}
             </h1>
-            <p className="text-xs text-slate-500">
+           <p className="text-xs text-slate-500">
               {language === 'hi'
                 ? 'गाँव की समस्याओं की रिपोर्ट करने और उनके समाधान को ट्रैक करने के लिए पंजीकरण करें।'
                 : 'Register to report village problems and track their resolution.'}
-            </p>
-          </div>
+             </p>
+           </div>
 
-          {error && (
+           {!success && (
+           <>
+             <button
+               type="button"
+               onClick={handleGoogleRegister}
+               disabled={isGoogleSubmitting || isRegistering}
+               className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+             >
+               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-sm font-extrabold text-[#4285F4]">G</span>
+               {isGoogleSubmitting ? 'Redirecting to Google...' : 'Register with Google'}
+             </button>
+             <div className="my-5 flex items-center gap-3">
+               <div className="h-px flex-1 bg-slate-200" />
+               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">or use email</span>
+               <div className="h-px flex-1 bg-slate-200" />
+             </div>
+           </>
+           )}
+
+           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
               {error}
             </div>
@@ -190,8 +221,8 @@ export const RegisterPage: React.FC = () => {
             </div>
           )}
 
-          {!success && (
-          <form onSubmit={handleSubmit} className="space-y-4">
+           {!success && (
+           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -321,7 +352,7 @@ export const RegisterPage: React.FC = () => {
                     className="w-full px-3 py-2 pr-10 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none"
                     placeholder="••••••••"
                   />
-                  <button
+             <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
@@ -377,11 +408,11 @@ export const RegisterPage: React.FC = () => {
             >
               <span>{isRegistering ? 'Creating account...' : language === 'hi' ? 'खाता बनाएं' : 'Create Account'}</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-          )}
+             </button>
+           </form>
+           )}
 
-          {!success && (
+           {!success && (
           <div className="mt-6 pt-4 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-600">
               Already have an account?{' '}
