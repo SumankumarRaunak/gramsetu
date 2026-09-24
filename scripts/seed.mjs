@@ -26,16 +26,14 @@ const authorityUsers = [
   { email: 'panchayat.sachiv@sijoul.com', password: 'Authority@1234', fullName: 'Rameshwar Roy', phone: '9431543210' },
   { email: 'mukhiya.sijoul@sijoul.com', password: 'Authority@1234', fullName: 'Shailesh Prasad', phone: '9431543220' },
   { email: 'block.officer@sijoul.com', password: 'Authority@1234', fullName: 'Block Development Officer', phone: '9431543230' },
-  { email: 'electricity.officer@sijoul.com', password: 'Authority@1234', fullName: 'NBPDCL Executive Engineer', phone: '9431543240' },
-  { email: 'district.officer@sijoul.com', password: 'Authority@1234', fullName: 'District Development Officer', phone: '9431543250' },
+  { email: 'district.officer@sijoul.com', password: 'Authority@1234', fullName: 'District Magistrate', phone: '9431543250' },
 ];
 
 const authoritiesProfiles = [
   { name: 'Rameshwar Roy', designation: 'Gram Panchayat Sachiv', role: 'PANCHAYAT' },
   { name: 'Shailesh Prasad', designation: 'Mukhiya', role: 'MUKHIYA' },
   { name: 'Block Development Officer', designation: 'BDO (Block Officer)', role: 'OFFICER' },
-  { name: 'NBPDCL Executive Engineer', designation: 'Executive Engineer, Electricity', role: 'DEPARTMENT' },
-  { name: 'District Development Officer', designation: 'District Development Officer', role: 'OFFICER' },
+  { name: 'District Magistrate', designation: 'DM (District Magistrate)', role: 'OFFICER' },
 ];
 
 async function ensureAdmin() {

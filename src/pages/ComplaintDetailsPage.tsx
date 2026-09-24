@@ -125,10 +125,16 @@ export const ComplaintDetailsPage: React.FC = () => {
             <p className="text-xs font-bold text-slate-900 mt-1 truncate">
               {c.location.village}, {c.location.ward}
             </p>
-            <p className="text-[10px] text-slate-500 mt-0.5">
-              Citizen: {c.submittedBy.name}
-            </p>
-          </div>
+             <p className="text-[10px] text-slate-500 mt-0.5">
+               Citizen: {c.submittedBy.name}
+             </p>
+             {c.submittedBy.mobile && (
+               <p className="text-[10px] text-slate-600 mt-0.5">Mobile: {c.submittedBy.mobile}</p>
+             )}
+             {c.submittedBy.email && (
+               <p className="text-[10px] text-slate-500 mt-0.5 truncate">Email: {c.submittedBy.email}</p>
+             )}
+           </div>
         </div>
 
         {/* 7-Day Auto-Escalation Rule */}

@@ -443,7 +443,7 @@ export const AuthorityDashboard: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px]">
                 <th className="p-3">ID</th>
-                <th className="p-3">Citizen</th>
+                <th className="p-3">Citizen Contact</th>
                 <th className="p-3">Category</th>
                 <th className="p-3">Current Authority</th>
                 <th className="p-3">Due Date</th>
@@ -468,6 +468,8 @@ export const AuthorityDashboard: React.FC = () => {
                   </td>
                   <td className="p-3">
                     <p className="font-bold text-slate-800">{c.submittedBy.name}</p>
+                    <p className="text-[10px] text-slate-600">{c.submittedBy.mobile || 'Mobile not provided'}</p>
+                    {c.submittedBy.email && <p className="text-[10px] text-slate-500">{c.submittedBy.email}</p>}
                     <p className="text-[10px] text-slate-500">{c.location.ward}, {c.location.village}</p>
                   </td>
                   <td className="p-3 capitalize text-slate-700">

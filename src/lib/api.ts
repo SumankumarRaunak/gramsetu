@@ -498,6 +498,9 @@ export async function trackComplaintPublic(complaintId: string): Promise<Record<
 
 export async function insertComplaint(input: {
   userId: string;
+  submitterName: string;
+  submitterMobile: string;
+  submitterEmail: string;
   categoryId: number | null;
   categoryName: string;
   title: string;
@@ -527,9 +530,9 @@ export async function insertComplaint(input: {
       landmark: input.landmark,
       photo_url: input.photoPath,
       priority: input.priority,
-      submitter_name: '',
-      submitter_mobile: '',
-      submitter_email: '',
+       submitter_name: input.submitterName,
+       submitter_mobile: input.submitterMobile,
+       submitter_email: input.submitterEmail,
     })
     .select('id,complaint_id')
     .single();

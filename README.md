@@ -29,6 +29,8 @@ citizen feedback.
 3. Set up the database by running the SQL files in `database/` (in order,
    `01_tables.sql` → `06_grants_seed.sql`, plus `07_denormalize.sql`,
    `08_closure_verification.sql`) in the **Supabase Dashboard → SQL Editor**.
+   If complaints already exist, also run `10_backfill_submitter_snapshot.sql`
+   once to populate their citizen contact details.
 
 4. Enable Google sign-in:
    - In **Google Cloud Console → APIs & Services → Credentials**, create an OAuth
@@ -47,6 +49,27 @@ citizen feedback.
    ```
    npm run dev
    ```
+
+## Official Accounts
+
+Run `npm run seed` once with `SUPABASE_SERVICE_ROLE_KEY` configured in `.env`.
+It creates the central administrator and four official accounts: Gram Panchayat,
+Mukhiya, BDO, and DM. The four authority accounts use the password
+`Authority@1234` until changed in Supabase Authentication.
+
+## Google Redirect Error
+
+For `Error 400: redirect_uri_mismatch`, Google Cloud Console must contain this
+exact Web OAuth redirect URI, including the `https://` scheme and no extra slash:
+
+`https://hlwcbrvdlbnnxkbltyug.supabase.co/auth/v1/callback`
+
+Add it under **Google Cloud Console → APIs & Services → Credentials → OAuth 2.0
+Client IDs → Authorized redirect URIs**. Do not add the application homepage in
+this field. Add the homepage separately under **Authorized JavaScript origins**
+and in **Supabase → Authentication → URL Configuration**. Then paste the same
+Google Client ID and Client Secret into **Supabase → Authentication → Providers
+→ Google**.
 
 ## Common Scripts
 

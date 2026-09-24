@@ -663,6 +663,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const cid = await insertComplaint({
         userId: session.user.id,
+        submitterName: data.submittedBy.name || user.name || meta.full_name || 'Citizen',
+        submitterMobile: data.submittedBy.mobile || user.mobile || meta.phone || '',
+        submitterEmail: data.submittedBy.email || user.email || session.user.email || '',
         categoryId: cat?.id ?? null,
         categoryName: cat?.name || data.category,
         title: data.title,
