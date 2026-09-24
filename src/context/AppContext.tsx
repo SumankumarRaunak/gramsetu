@@ -91,6 +91,7 @@ interface AppContextType {
   markAllNotificationsRead: () => void;
   updateUserProfile: (updated: Partial<UserProfile>) => Promise<void>;
   login: (identifier: string, password: string) => Promise<UserRole>;
+  signInWithGoogle: () => Promise<void>;
   register: (fields: {
     fullName: string;
     email: string;
@@ -259,16 +260,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAuthorityId(found.authorityId || null);
       } else if (found?.role === 'citizen') {
         const p = found.profile as { full_name: string; email: string; phone?: string } & Record<string, string>;
+        // Self-heal: if signup metadata holds village/block data that was never
+        // persisted (e.g. account created before the trigger existed), backfill it.
+        const meta = (userRecord.user_metadata || {}) as Record<string, string>;
+        const backfill: Record<string, string> = {};
+        for (const k of ['village', 'ward', 'panchayat', 'block', 'district']) {
+          if (!p[k] && meta[k]) backfill[k] = meta[k];
+        }
+        if (Object.keys(backfill).length) {
+          try {
+            await supabase.from('users').update(backfill).eq('id', userRecord.id);
+          } catch (e) {
+            console.warn('Profile backfill failed', (e as Error)?.message);
+          }
+          Object.assign(p, backfill);
+        }
         setUser({
           id: userRecord.id,
           name: p.full_name,
           email: p.email,
           mobile: p.phone || '',
-          village: p.village || '',
-          ward: p.ward || '',
-          panchayat: p.panchayat || '',
-          block: p.block || '',
-          district: p.district || '',
+          village: p.village || meta.village || '',
+          ward: p.ward || meta.ward || '',
+          panchayat: p.panchayat || meta.panchayat || '',
+          block: p.block || meta.block || '',
+          district: p.district || meta.district || '',
           role: 'citizen',
         });
         setRole('citizen');
@@ -448,6 +464,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Auth actions
   // -------------------------------------------------------------------------
 
+  const authErrorMessage = (err: unknown): string => {
+    const e = err as { status?: number; code?: string; message?: string };
+    const hi = language === 'hi';
+
+    if (e.status === 429) {
+      return hi
+        ? 'बहुत अधिक प्रयास — कृपया कुछ समय (लगभग 1 घंटा) बाद दोबारा प्रयास करें।'
+        : 'Too many attempts (rate limit). Please wait about an hour and try again.';
+    }
+    if (e.code === 'email_not_confirmed') {
+      return hi
+        ? 'ईमेल अभी सत्यापित नहीं हुआ है। अपने इनबॉक्स/स्पैम में सत्यापन लिंक जांचें और पहले उसे क्लिक करें।'
+        : 'Email not confirmed yet. Check your inbox (and spam) for the verification link and confirm it first.';
+    }
+    if (e.code === 'invalid_credentials' || e.code === 'invalid_grant') {
+      return hi
+        ? 'गलत ईमेल या पासवर्ड। यदि पासवर्ड भूल गए हैं, तो इसे रीसेट करें।'
+        : 'Invalid email or password. If you forgot your password, please reset it.';
+    }
+    if (e.code === 'user_already_registered') {
+      return hi
+        ? 'इस ईमेल से खाता पहले से मौजूद है — कृपया साइन इन करें।'
+        : 'An account with this email already exists — please sign in instead.';
+    }
+    if (e.code === 'weak_password') {
+      return hi
+        ? 'पासवर्ड बहुत कमजोर है (कम से कम 8 अक्षर चाहिए)।'
+        : 'Password is too weak (at least 8 characters required).';
+    }
+    if (e.status === 500 || e.code === 'over_email_send_rate_limit') {
+      return hi
+        ? 'सर्वर त्रुटि हुई। यह ज्ञात Supabase ट्रिगर समस्या है — कृपया database फिक्स SQL चलाएं / एडमिन से संपर्क करें।'
+        : 'Server error while creating the account. This is the known Supabase auth trigger issue — run the database fix migration (09_fix_auth_trigger.sql) in Supabase SQL Editor.';
+    }
+    return e.message || (hi ? 'कुछ गलत हुआ, पुनः प्रयास करें।' : 'Something went wrong. Please try again.');
+  };
+
+  const signInWithGoogle = useCallback(async (): Promise<void> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: (import.meta.env.VITE_SITE_URL as string | undefined) || window.location.origin,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    if (error) throw new Error(authErrorMessage(error));
+  }, [language]);
+
   const login = useCallback(
     async (identifier: string, password: string): Promise<UserRole> => {
       if (!identifier.includes('@')) {
@@ -457,7 +521,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         email: identifier.trim(),
         password,
       });
-      if (error) throw error;
+      if (error) throw new Error(authErrorMessage(error));
       const p = await fetchUserProfile(data.user.id);
       if (p?.role === 'admin') {
         setCurrentPage('authority_dashboard');
@@ -470,7 +534,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentPage('dashboard');
       return 'citizen';
     },
-    []
+    [language]
   );
 
   const register = useCallback(
@@ -501,7 +565,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           },
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(authErrorMessage(error));
 
       const needsEmailConfirm = !data.session;
       if (data.session && data.user) {
@@ -524,7 +588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return { needsEmailConfirm };
     },
-    [loadProfileForUser]
+    [language, loadProfileForUser]
   );
 
   const logout = useCallback(async () => {
@@ -553,6 +617,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ): Promise<string> => {
       if (!session?.user) throw new Error('Please login to submit a complaint.');
 
+      // Resolve location from the submit form, the loaded profile, then the
+      // signup metadata (never a hardcoded default). Backfills the profile
+      // row if it is missing so the RLS insert check always passes.
+      const meta = (session.user.user_metadata || {}) as Record<string, string>;
+      const loc = {
+        village: data.location.village || user.village || meta.village || '',
+        ward: data.location.ward || user.ward || meta.ward || '',
+        panchayat: data.location.panchayat || user.panchayat || meta.panchayat || '',
+        block: data.location.block || user.block || meta.block || '',
+        district: data.location.district || user.district || meta.district || '',
+      };
+      try {
+        await supabase.from('users').upsert(
+          {
+            id: session.user.id,
+            full_name: data.submittedBy.name || meta.full_name || 'Citizen',
+            email: data.submittedBy.email || session.user.email || '',
+            phone: data.submittedBy.mobile || meta.phone || '',
+            village: loc.village,
+            ward: loc.ward,
+            panchayat: loc.panchayat,
+            block: loc.block,
+            district: loc.district,
+          },
+          { onConflict: 'id' }
+        );
+      } catch (e) {
+        console.warn('ensure citizen profile failed', (e as Error)?.message);
+      }
+
       let photoPath = '';
       if (options?.file) {
         photoPath = await uploadEvidence(options.file, session.user.id);
@@ -573,11 +667,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         categoryName: cat?.name || data.category,
         title: data.title,
         description: data.description,
-        village: data.location.village,
-        ward: data.location.ward,
-        panchayat: data.location.panchayat,
-        block: data.location.block,
-        district: data.location.district,
+        village: loc.village,
+        ward: loc.ward,
+        panchayat: loc.panchayat,
+        block: loc.block,
+        district: loc.district,
         landmark: data.location.landmark || '',
         photoPath,
         priority: data.priority || 'normal',
@@ -587,7 +681,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedComplaintId(cid);
       return cid;
     },
-    [session, refreshComplaints]
+    [session, user, refreshComplaints]
   );
 
   const updateComplaintStatus = useCallback(
@@ -786,6 +880,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markAllNotificationsRead,
         updateUserProfile,
         login,
+        signInWithGoogle,
         register,
         logout,
         refreshComplaints,

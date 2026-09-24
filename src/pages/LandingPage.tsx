@@ -76,7 +76,7 @@ export const LandingPage: React.FC = () => {
         {/* Subtle Rural Bihar Panorama Backdrop with Scrim */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/src/assets/images/smart_village_hero_1790113390546.jpg"
+            src="/src/assets/images/smart_village_hero.jpg"
             alt="Rural Bihar Smart Village"
             className="w-full h-full object-cover opacity-20 filter contrast-125"
             referrerPolicy="no-referrer"

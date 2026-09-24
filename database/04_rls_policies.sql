@@ -54,7 +54,6 @@ create policy "complaints select admin" on public.complaints for select to authe
 drop policy if exists "complaints insert citizen" on public.complaints;
 create policy "complaints insert citizen" on public.complaints for insert to authenticated with check (
   user_id = auth.uid()::uuid
-  and exists (select 1 from public.users u where u.id = auth.uid()::uuid)
 );
 drop policy if exists "complaints update authority" on public.complaints;
 create policy "complaints update authority" on public.complaints for update to authenticated using (

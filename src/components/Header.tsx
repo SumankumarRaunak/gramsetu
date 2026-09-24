@@ -97,8 +97,8 @@ export const Header: React.FC = () => {
             >
               <div className="w-10 h-10 rounded-xl overflow-hidden border border-emerald-800/30 shadow-xs bg-emerald-950 flex items-center justify-center shrink-0">
                 <img
-                  src="/src/assets/images/bihar_civic_crest_1790114318514.jpg"
-                  alt="GramSwaraj Civic Crest"
+                  src="/src/assets/images/logo.jpg"
+                  alt="GramSwaraj Logo"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />

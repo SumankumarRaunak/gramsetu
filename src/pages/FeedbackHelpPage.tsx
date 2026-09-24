@@ -70,8 +70,8 @@ export const FeedbackHelpPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
       {/* SECTION 1: Citizen Feedback Form */}
-      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-xl space-y-6">
-        <div className="border-b border-slate-100 pb-5">
+      <section className="space-y-6">
+        <div className="border-b-2 border-slate-200 pb-5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 rounded-full text-xs font-semibold text-emerald-900 border border-emerald-200 mb-2">
             <Star className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
             <span>Citizen Audit & Satisfaction</span>
@@ -146,7 +146,7 @@ export const FeedbackHelpPage: React.FC = () => {
                     <label
                       key={key}
                       className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
-                        selected ? 'border-emerald-700 bg-emerald-50/80 font-bold text-emerald-950' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                        selected ? 'border-emerald-700 bg-emerald-50/80 font-bold text-emerald-950' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                       }`}
                     >
                       <input
@@ -215,11 +215,11 @@ export const FeedbackHelpPage: React.FC = () => {
             </button>
           </form>
         )}
-      </div>
+      </section>
 
       {/* SECTION 2: Frequently Asked Questions (FAQ) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-xl space-y-6">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+      <section className="space-y-6">
+        <div className="flex items-center gap-3 border-b-2 border-slate-200 pb-4">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
             <HelpCircle className="w-5 h-5" />
           </div>
@@ -235,7 +235,7 @@ export const FeedbackHelpPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-slate-200">
           {sampleFAQs.map((faq) => {
             const isOpen = openFaq === faq.id;
             return (
@@ -264,7 +264,7 @@ export const FeedbackHelpPage: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* SECTION 3: Official Help Directory & Contacts */}
       <div className="bg-gradient-to-r from-emerald-900 via-emerald-950 to-slate-950 text-white rounded-3xl p-6 sm:p-10 shadow-xl space-y-6">

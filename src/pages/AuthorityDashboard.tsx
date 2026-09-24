@@ -57,7 +57,7 @@ export const AuthorityDashboard: React.FC = () => {
   const [forwardTarget, setForwardTarget] = useState<AuthorityTier>('Mukhiya');
   const [forwardReason, setForwardReason] = useState('Requires higher department fund sanction & tender approval.');
   const [officialRemark, setOfficialRemark] = useState('');
-  const [proofImage, setProofImage] = useState('/src/assets/images/street_light_proof_1790113405855.jpg');
+  const [proofImage, setProofImage] = useState('/src/assets/images/street_light_proof.jpg');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofVideo, setProofVideo] = useState<File | null>(null);
   const [proofVideoUrl, setProofVideoUrl] = useState('');

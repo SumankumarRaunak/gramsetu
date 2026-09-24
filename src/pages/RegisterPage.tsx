@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { UserCheck, Lock, Mail, Phone, MapPin, CheckCircle2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { UserCheck, Lock, Mail, Phone, MapPin, CheckCircle2, ShieldCheck, ArrowRight, MailCheck, Eye, EyeOff } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const { setCurrentPage, register, language, t } = useApp();
@@ -22,7 +22,10 @@ export const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +60,9 @@ export const RegisterPage: React.FC = () => {
         district: formData.district,
         password: formData.password,
       });
-      setSuccess(true);
+      setRegisteredEmail(formData.email);
       setNeedsEmailConfirm(result.needsEmailConfirm);
+      setSuccess(true);
       if (!result.needsEmailConfirm) {
         setTimeout(() => setCurrentPage('dashboard'), 1200);
       }
@@ -75,7 +79,7 @@ export const RegisterPage: React.FC = () => {
         {/* Left Side: Smart Village Illustration / Banner */}
         <div className="lg:col-span-5 relative bg-emerald-950 text-white p-8 sm:p-10 flex flex-col justify-between overflow-hidden">
           <img
-            src="/src/assets/images/smart_village_hero_1790113390546.jpg"
+            src="/src/assets/images/smart_village_hero.jpg"
             alt="Smart Village Bihar"
             className="absolute inset-0 w-full h-full object-cover opacity-35"
             referrerPolicy="no-referrer"
@@ -135,16 +139,58 @@ export const RegisterPage: React.FC = () => {
           )}
 
           {success && (
-            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>
+            <div
+              className={`border rounded-2xl p-6 sm:p-8 text-center flex flex-col items-center gap-3 ${
+                needsEmailConfirm
+                  ? 'bg-emerald-50 border-emerald-300 border-2'
+                  : 'bg-emerald-50 border-emerald-200'
+              }`}
+            >
+              <div className="w-16 h-16 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                {needsEmailConfirm ? (
+                  <MailCheck className="w-8 h-8" />
+                ) : (
+                  <CheckCircle2 className="w-8 h-8" />
+                )}
+              </div>
+              <h2 className="text-xl font-extrabold text-emerald-900">
                 {needsEmailConfirm
-                  ? 'Account created! A verification email has been sent. Please confirm your email, then login.'
-                  : 'Account created successfully! Redirecting to Citizen Dashboard...'}
-              </span>
+                  ? 'Account Created! Verify Your Email'
+                  : 'Account Created Successfully!'}
+              </h2>
+              {needsEmailConfirm ? (
+                <>
+                  <p className="text-sm text-emerald-800 max-w-sm">
+                    A verification link has been sent to{' '}
+                    <span className="font-bold text-emerald-950 break-all">{registeredEmail}</span>. Please
+                    open your inbox and click <span className="font-bold">"Confirm your email"</span>{' '}
+                    to activate your account. You will then be able to login below.
+                  </p>
+                  <div className="flex items-center gap-2 p-3 bg-white border border-emerald-200 rounded-xl text-xs text-emerald-800 max-w-sm">
+                    <Mail className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Check your spam/promotions folder too if you don't see the email. Do NOT create
+                      the account again — just login after confirming.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage('login')}
+                    className="btn btn-primary mt-2"
+                  >
+                    Go to Login
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-emerald-800">Redirecting to Citizen Dashboard...</p>
+                </>
+              )}
             </div>
           )}
 
+          {!success && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -266,28 +312,48 @@ export const RegisterPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Password (पासवर्ड) *
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Confirm Password (पासवर्ड दोबारा) *
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    required
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -313,7 +379,9 @@ export const RegisterPage: React.FC = () => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+          )}
 
+          {!success && (
           <div className="mt-6 pt-4 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-600">
               Already have an account?{' '}
@@ -325,6 +393,7 @@ export const RegisterPage: React.FC = () => {
               </button>
             </p>
           </div>
+          )}
         </div>
       </div>
     </div>

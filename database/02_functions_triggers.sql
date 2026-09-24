@@ -74,3 +74,51 @@ drop trigger if exists trg_complaints_updated on public.complaints;
 create trigger trg_complaints_updated
 before update on public.complaints
 for each row execute function public.touch_updated_at();
+
+-- ------------------------------------------------------------
+-- Auto-create a citizen profile row when an auth user signs up.
+-- Ensures village / ward / panchayat / block / district captured at
+-- registration are persisted even when email confirmation is enabled
+-- (no session exists yet in the browser to do the insert client-side).
+-- Authorities/admins are seeded separately via the seed script.
+--
+-- IMPORTANT: The trigger body is exception-safe, so a profile insert
+-- problem can NEVER block the auth signup itself.
+-- ------------------------------------------------------------
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+begin
+  if meta->>'role' is null or meta->>'role' = 'citizen' then
+    begin
+      insert into public.users (
+        id, full_name, email, phone,
+        village, ward, panchayat, block, district
+      ) values (
+        new.id,
+        coalesce(nullif(meta->>'full_name', ''), 'New Citizen'),
+        coalesce(new.email, ''),
+        coalesce(meta->>'phone', ''),
+        coalesce(meta->>'village', ''),
+        coalesce(meta->>'ward', ''),
+        coalesce(meta->>'panchayat', ''),
+        coalesce(meta->>'block', ''),
+        coalesce(meta->>'district', '')
+      )
+      on conflict (id) do nothing;
+    exception when others then
+      null; -- must never break signup
+    end;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();

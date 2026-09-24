@@ -132,8 +132,8 @@ export const SubmitComplaintPage: React.FC = () => {
             village,
             ward,
             panchayat,
-            block: user.block || 'Runni Saidpur',
-            district: user.district || 'Sitamarhi',
+            block: user.block || '',
+            district: user.district || '',
             landmark,
           },
           evidenceImageUrl: evidenceUrl,
@@ -159,28 +159,27 @@ export const SubmitComplaintPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-slate-950 text-white p-6 sm:p-8 space-y-2 border-b border-slate-800">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Right to Public Grievance Redressal Form</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              {t.submitPageHeading}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-              {t.submitPageSub}
-            </p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Header */}
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            <ShieldCheck className="w-4 h-4 text-emerald-700" />
+            <span>Right to Public Grievance Redressal Form</span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            {t.submitPageHeading}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
+            {t.submitPageSub}
+          </p>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-8">
             {/* Step 1: Category */}
             <div>
               <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">
-                1. {t.formCategory} *
+                {t.formCategory} *
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 {categories.map((cat) => (
@@ -204,7 +203,7 @@ export const SubmitComplaintPage: React.FC = () => {
             {/* Step 2: Title */}
             <div>
               <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-1.5">
-                2. {t.formTitle} *
+                {t.formTitle} *
               </label>
               <input
                 type="text"
@@ -219,7 +218,7 @@ export const SubmitComplaintPage: React.FC = () => {
             {/* Step 3: Description */}
             <div>
               <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-1.5">
-                3. {t.formDesc} *
+                {t.formDesc} *
               </label>
               <textarea
                 required
@@ -232,10 +231,10 @@ export const SubmitComplaintPage: React.FC = () => {
             </div>
 
             {/* Step 4: Location */}
-            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
                 <MapPin className="w-4 h-4 text-emerald-800" />
-                <span>4. {t.formLocation}</span>
+                <span>{t.formLocation}</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -331,7 +330,7 @@ export const SubmitComplaintPage: React.FC = () => {
             {/* Step 5: Evidence */}
             <div>
               <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                5. {t.formEvidence}
+                {t.formEvidence}
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
@@ -377,8 +376,8 @@ export const SubmitComplaintPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-1.5">
-                  6. {t.formPriority}
-                </label>
+                {t.formPriority}
+              </label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as ComplaintPriority)}
@@ -392,7 +391,7 @@ export const SubmitComplaintPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                  7. {t.formContactPref}
+                  {t.formContactPref}
                 </label>
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -418,7 +417,7 @@ export const SubmitComplaintPage: React.FC = () => {
             </div>
 
             {/* Submit Button */}
-            <div className="pt-4 border-t border-slate-100 space-y-3">
+            <div className="pt-4 border-t border-slate-200 space-y-3">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
                   {formError}
@@ -434,7 +433,6 @@ export const SubmitComplaintPage: React.FC = () => {
               </button>
             </div>
           </form>
-        </div>
     </div>
   );
 };

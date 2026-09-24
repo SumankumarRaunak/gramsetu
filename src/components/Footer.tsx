@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg overflow-hidden border border-emerald-600/40 bg-emerald-950 flex items-center justify-center shrink-0">
                 <img
-                  src="/src/assets/images/bihar_civic_crest_1790114318514.jpg"
+                  src="/src/assets/images/logo.jpg"
                   alt="GramSwaraj Seal"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
