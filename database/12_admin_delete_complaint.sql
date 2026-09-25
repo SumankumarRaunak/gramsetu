@@ -33,13 +33,9 @@ begin
     raise exception 'Complaint not found';
   end if;
 
-  -- Storage objects are not covered by relational ON DELETE CASCADE.
-  if cardinality(v_paths) > 0 then
-    delete from storage.objects
-    where bucket_id = 'complaints' and name = any(v_paths);
-  end if;
-
-  return jsonb_build_object('ok', true);
+  -- Storage objects are removed by the authenticated Storage API client after
+  -- this RPC returns their paths; relational SQL must not touch storage.objects.
+  return jsonb_build_object('ok', true, 'paths', to_jsonb(v_paths));
 end;
 $$;
 

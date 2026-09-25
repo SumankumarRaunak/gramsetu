@@ -72,6 +72,7 @@ export const AuthorityDashboard: React.FC = () => {
   const [isForwardingMode, setIsForwardingMode] = useState(false);
   const [successToast, setSuccessToast] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Complaint | null>(null);
 
   const VERIFICATION_STATES: ComplaintStatus[] = ['verification_pending', 'citizen_confirmed', 'disputed'];
 
@@ -84,6 +85,14 @@ export const AuthorityDashboard: React.FC = () => {
   const verificationQueue = complaints.filter((c) => VERIFICATION_STATES.includes(c.status)).length;
   const closureQueueRows = complaints.filter((c) => VERIFICATION_STATES.includes(c.status));
   const isHigherAuthority = ['mukhiya', 'block_officer', 'dm_authority'].includes(user.role);
+  const nextAuthorityTier: AuthorityTier | null =
+    user.role === 'panchayat_officer'
+      ? 'Mukhiya'
+      : user.role === 'mukhiya'
+      ? 'Block Officer'
+      : user.role === 'block_officer'
+      ? 'DM / District Authority'
+      : null;
   const canClose = (c: Complaint) =>
     user.role === 'admin' || (isHigherAuthority && c.status === 'disputed');
 
@@ -98,6 +107,7 @@ export const AuthorityDashboard: React.FC = () => {
 
   const handleOpenAction = (c: Complaint) => {
     setActionComplaint(c);
+    if (nextAuthorityTier) setForwardTarget(nextAuthorityTier);
     setSelectedStatus(c.status === 'pending' ? 'in_progress' : c.status);
     setOfficialRemark('');
     setProofFile(null);
@@ -257,7 +267,7 @@ export const AuthorityDashboard: React.FC = () => {
   };
 
   const handleDelete = async (c: Complaint) => {
-    if (user.role !== 'admin' || !window.confirm(`Delete complaint ${c.id}? This cannot be undone.`)) return;
+    if (user.role !== 'admin') return;
     setDeletingId(c.id);
     try {
       await deleteComplaint(c.id);
@@ -266,6 +276,7 @@ export const AuthorityDashboard: React.FC = () => {
       setSuccessToast((err as Error)?.message || 'Failed to delete complaint.');
     } finally {
       setDeletingId(null);
+      setDeleteTarget(null);
       setTimeout(() => setSuccessToast(''), 3500);
     }
   };
@@ -534,7 +545,7 @@ export const AuthorityDashboard: React.FC = () => {
                   <td className="p-3 text-right space-x-2">
                     {user.role === 'admin' && (
                       <button
-                        onClick={() => handleDelete(c)}
+                        onClick={() => setDeleteTarget(c)}
                         disabled={deletingId === c.id}
                         className="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
                         title="Delete complaint"
@@ -738,15 +749,17 @@ export const AuthorityDashboard: React.FC = () => {
                 >
                   <RotateCcw className="w-3.5 h-3.5" />{t.btnUpdateStatus} & Remarks
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsForwardingMode(true)}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                    isForwardingMode ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-600'
-                  }`}
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />{t.btnForward}
-                </button>
+                {nextAuthorityTier && (
+                  <button
+                    type="button"
+                    onClick={() => setIsForwardingMode(true)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                      isForwardingMode ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />{t.btnForward}
+                  </button>
+                )}
               </div>
 
               {!isForwardingMode ? (
@@ -967,9 +980,15 @@ export const AuthorityDashboard: React.FC = () => {
                       onChange={(e) => setForwardTarget(e.target.value as AuthorityTier)}
                       className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-emerald-600 outline-none"
                     >
-                      <option value="Mukhiya">Mukhiya (Tier 2 - Panchayat Head)</option>
-                      <option value="Block Officer">Block Officer / BDO (Tier 3)</option>
-                      <option value="DM / District Authority">District Magistrate / DM (Tier 4 - Collectorate)</option>
+                      {nextAuthorityTier && (
+                        <option value={nextAuthorityTier}>
+                          {nextAuthorityTier === 'Mukhiya'
+                            ? 'Mukhiya (Tier 2 - Panchayat Head)'
+                            : nextAuthorityTier === 'Block Officer'
+                            ? 'Block Officer / BDO (Tier 3)'
+                            : 'District Magistrate / DM (Tier 4 - Collectorate)'}
+                        </option>
+                      )}
                     </select>
                   </div>
 
@@ -1100,6 +1119,65 @@ export const AuthorityDashboard: React.FC = () => {
                   <span>{isApplying ? 'Closing...' : language === 'hi' ? 'अंतिम रूप से बंद करें' : 'Confirm Final Closure'}</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !deletingId) setDeleteTarget(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-complaint-title"
+            className="w-full max-w-md rounded-2xl bg-white border border-rose-200 shadow-2xl overflow-hidden"
+          >
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 id="delete-complaint-title" className="text-base font-extrabold text-slate-900">
+                  Delete complaint?
+                </h2>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Complaint <span className="font-mono font-bold text-slate-900">{deleteTarget.id}</span> and its uploaded evidence will be permanently removed.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={!!deletingId}
+                className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                aria-label="Close delete confirmation"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(deleteTarget)}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deletingId ? 'Deleting...' : 'Delete permanently'}
+              </button>
             </div>
           </div>
         </div>

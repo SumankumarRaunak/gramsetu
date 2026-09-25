@@ -26,3 +26,7 @@ create policy "complaints authenticated upload" on storage.objects
 drop policy if exists "complaints authenticated update" on storage.objects;
 create policy "complaints authenticated update" on storage.objects
   for update using (bucket_id = 'complaints' and auth.role() = 'authenticated');
+
+drop policy if exists "complaints admin delete" on storage.objects;
+create policy "complaints admin delete" on storage.objects
+  for delete using (bucket_id = 'complaints' and public.is_admin());

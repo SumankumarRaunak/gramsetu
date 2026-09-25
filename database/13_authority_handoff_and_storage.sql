@@ -2,7 +2,7 @@
 -- Run after 11_authority_workflow.sql and 12_admin_delete_complaint.sql.
 
 -- Re-declare this here as well so installations that already ran migration 12
--- also get storage cleanup when the new workflow migration is applied.
+-- also get the Storage API deletion contract when this migration is applied.
 create or replace function public.delete_complaint(p_complaint_id bigint)
 returns jsonb
 language plpgsql
@@ -32,12 +32,9 @@ begin
   delete from public.complaints where id = p_complaint_id;
   if not found then raise exception 'Complaint not found'; end if;
 
-  if cardinality(v_paths) > 0 then
-    delete from storage.objects
-    where bucket_id = 'complaints' and name = any(v_paths);
-  end if;
-
-  return jsonb_build_object('ok', true);
+  -- Storage objects are removed by the authenticated Storage API client after
+  -- this RPC returns their paths; relational SQL must not touch storage.objects.
+  return jsonb_build_object('ok', true, 'paths', to_jsonb(v_paths));
 end;
 $$;
 

@@ -326,9 +326,20 @@ export async function fetchComplaints(opts: {
   if (error) throw error;
   const rows = ((data as unknown) ?? []) as ComplaintRow[];
 
-  const timeline = await fetchTimelines(rows.map((r) => r.id));
-  const feedback = await fetchFeedback(rows.map((r) => r.id));
-  const closures = await fetchClosures(rows.map((r) => r.id));
+  const [timeline, feedback, closures] = await Promise.all([
+    fetchTimelines(rows.map((r) => r.id)).catch((error): Record<number, TimelineRow[]> => {
+      console.warn('Failed to load complaint timelines', error);
+      return {};
+    }),
+    fetchFeedback(rows.map((r) => r.id)).catch((error): Record<number, FeedbackRow> => {
+      console.warn('Failed to load complaint feedback', error);
+      return {};
+    }),
+    fetchClosures(rows.map((r) => r.id)).catch((error): Record<number, ClosureRow[]> => {
+      console.warn('Failed to load complaint closures', error);
+      return {};
+    }),
+  ]);
   const categories = await getCategories();
   const catById = new Map(categories.map((c) => [c.id, c]));
 
@@ -642,8 +653,17 @@ export async function callCloseComplaint(complaintId: number, remarks?: string):
 }
 
 export async function deleteComplaint(complaintId: number): Promise<void> {
-  const { error } = await supabase.rpc('delete_complaint', { p_complaint_id: complaintId });
+  const { data, error } = await supabase.rpc('delete_complaint', { p_complaint_id: complaintId });
   if (error) throw error;
+
+  const rawPaths = (data as { paths?: unknown } | null)?.paths;
+  const paths = Array.isArray(rawPaths)
+    ? rawPaths.filter((path: unknown): path is string => typeof path === 'string' && path.length > 0)
+    : [];
+  if (!paths.length) return;
+
+  const { error: storageError } = await supabase.storage.from('complaints').remove(paths);
+  if (storageError) throw storageError;
 }
 
 // ---------------------------------------------------------------------------

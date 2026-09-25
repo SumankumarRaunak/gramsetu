@@ -28,8 +28,10 @@ citizen feedback.
 
 3. Set up the database by running the SQL files in `database/` (in order,
    `01_tables.sql` → `06_grants_seed.sql`, plus `07_denormalize.sql`,
-   `08_closure_verification.sql`, `10_backfill_submitter_snapshot.sql`, and
-   `11_authority_workflow.sql`) in the **Supabase Dashboard → SQL Editor**.
+   `08_closure_verification.sql`, `10_backfill_submitter_snapshot.sql`,
+   `11_authority_workflow.sql`, `12_admin_delete_complaint.sql`,
+   `13_authority_handoff_and_storage.sql`, and `14_storage_api_delete.sql`) in
+   the **Supabase Dashboard → SQL Editor**.
    If complaints already exist, also run `10_backfill_submitter_snapshot.sql`
    once to populate their citizen contact details.
 

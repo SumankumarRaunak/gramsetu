@@ -33,7 +33,7 @@ const authoritiesProfiles = [
   { name: 'Rameshwar Roy', designation: 'Gram Panchayat Sachiv', role: 'PANCHAYAT', village: '', panchayat: '', block: '', district: '' },
   { name: 'Shailesh Prasad', designation: 'Mukhiya', role: 'MUKHIYA', village: '', panchayat: '', block: '', district: '' },
   { name: 'Block Development Officer', designation: 'BDO (Block Officer)', role: 'OFFICER', village: '', panchayat: '', block: '', district: '' },
-  { name: 'District Magistrate', designation: 'DM (District Magistrate)', role: 'OFFICER', village: '', panchayat: '', block: '', district: '' },
+  { name: 'District Magistrate', designation: 'DM (District Magistrate)', role: 'DEPARTMENT', village: '', panchayat: '', block: '', district: '' },
 ];
 
 async function ensureAdmin() {

@@ -45,7 +45,7 @@ const run = async () => {
     });
     if (error) throw error;
     citizenId = au.user.id;
-    const { error: e2 } = await service.from('users').insert({
+    const { error: e2 } = await service.from('users').upsert({
       id: citizenId,
       full_name: 'E2E Test Citizen',
       email: citizenEmail,
@@ -55,7 +55,7 @@ const run = async () => {
       block: 'E2E Block',
       district: 'Madhubani',
       panchayat: 'E2E Panchayat',
-    });
+    }, { onConflict: 'id' });
     if (e2) throw e2;
     log('1. citizen auth + profile created', true, citizenEmail);
   } catch (err) {
@@ -131,7 +131,7 @@ const run = async () => {
     log('4. resolve-without-photo blocked', false, err.message);
   }
 
-  // 5. Official resolves WITH a proof photo (uploaded file -> storage -> RPC)
+  // 5. Official submits completion proof (uploaded file -> storage -> RPC)
   let proofPath;
   try {
     const png = Buffer.from(
@@ -145,34 +145,53 @@ const run = async () => {
     });
     if (ue) throw ue;
 
-    const { error: se } = await anon.rpc('update_complaint_status', {
+    const { error: se } = await anon.rpc('submit_for_verification', {
       p_complaint_id: complaintId,
-      p_status: 'RESOLVED',
-      p_remarks: 'E2E: replacement lamp installed and verified on site.',
       p_photo_url: proofPath,
+      p_remarks: 'E2E: replacement lamp installed and submitted for citizen verification.',
     });
     if (se) throw se;
-    log('5. resolved WITH photo proof', true, proofPath);
+    log('5. proof submitted for citizen verification', true, proofPath);
   } catch (err) {
-    log('5. resolved WITH photo proof', false, err.message);
+    log('5. proof submitted for citizen verification', false, err.message);
   }
 
-  // 6. Citizen submits feedback
+  // 6. Citizen confirms the work and submits feedback
   try {
     const { error } = await anon.auth.signInWithPassword({ email: citizenEmail, password: citizenPassword });
     if (error) throw error;
+    const { error: ve } = await anon.rpc('citizen_respond_verification', {
+      p_complaint_id: complaintId,
+      p_response: 'CONFIRMED',
+      p_remarks: 'E2E: work confirmed by citizen.',
+    });
+    if (ve) throw ve;
     const { error: fe } = await anon.rpc('submit_feedback', {
       p_complaint_id: complaintId,
       p_rating: 5,
       p_comment: 'E2E: Light fixed within two days. Very satisfied.',
     });
     if (fe) throw fe;
-    log('6. citizen feedback submitted', true, 'rating=5');
+    log('6. citizen confirmed work + submitted feedback', true, 'rating=5');
   } catch (err) {
-    log('6. citizen feedback submitted', false, err.message);
+    log('6. citizen confirmed work + submitted feedback', false, err.message);
   }
 
-  // 7. Readback (service role = what the DB truly holds)
+  // 7. Admin finally closes the verified complaint
+  try {
+    const { error } = await anon.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    if (error) throw error;
+    const { error: ce } = await anon.rpc('admin_close_complaint', {
+      p_complaint_id: complaintId,
+      p_remarks: 'E2E: final administrative closure.',
+    });
+    if (ce) throw ce;
+    log('7. admin finally closed complaint', true);
+  } catch (err) {
+    log('7. admin finally closed complaint', false, err.message);
+  }
+
+  // 8. Readback (service role = what the DB truly holds)
   try {
     const { data: c, error: ce } = await service
       .from('complaints')
@@ -196,46 +215,72 @@ const run = async () => {
       .limit(1);
     if (ste) throw ste;
 
-    const ok = c.status === 'RESOLVED' && f.rating === 5 && st[0].status === 'RESOLVED' && !!st[0].photo_url;
-    log('7. DB readback (status/feedback/proof)', ok, JSON.stringify({ status: c.status, resolved_at: c.resolved_at, feedback: f, latest: st[0] }));
+    const { data: closure, error: cle } = await service
+      .from('complaint_closure')
+      .select('photo_url')
+      .eq('complaint_id', complaintId)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (cle) throw cle;
+
+    const proof = closure?.photo_url;
+    const ok = c.status === 'CLOSED' && f.rating === 5 && !!proof;
+    log('8. DB readback (closure/feedback/proof)', ok, JSON.stringify({ status: c.status, resolved_at: c.resolved_at, feedback: f, proof }));
   } catch (err) {
-    log('7. DB readback (status/feedback/proof)', false, err.message);
+    log('8. DB readback (closure/feedback/proof)', false, err.message);
   }
 
-  // 8. Admin reads feedback through normal (anon, admin RLS) client
+  // 9. Admin reads feedback through normal (anon, admin RLS) client
   try {
     const { error } = await anon.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
     if (error) throw error;
     const { data, error: fe } = await anon.from('feedback').select('complaint_id,rating,comment').eq('complaint_id', complaintId);
     if (fe) throw fe;
-    log('8. admin sees feedback (RLS)', (data || []).length === 1, JSON.stringify(data));
+    log('9. admin sees feedback (RLS)', (data || []).length === 1, JSON.stringify(data));
   } catch (err) {
-    log('8. admin sees feedback (RLS)', false, err.message);
+    log('9. admin sees feedback (RLS)', false, err.message);
   }
 
-  // 9. Public tracking endpoint returns the case (photo in timeline needs chunk 05 re-run)
+  // 10. Public tracking endpoint returns the case with proof in the timeline
   try {
-    const { data, error } = await anon.auth.signOut().then(() =>
-      createClient(URL, ANON, { auth: { persistSession: false } })
-        .from('complaints')
-        .select('complaint_id')
-        .eq('complaint_id', cid)
-        .maybeSingle()
-    );
+    await anon.auth.signOut();
+    const publicClient = createClient(URL, ANON, { auth: { persistSession: false } });
+    const { data, error } = await publicClient.rpc('get_public_complaint', { p_complaint_id: cid });
     if (error) throw error;
     const { data: st, error: ste } = await service
       .from('complaint_status')
       .select('status,photo_url')
       .eq('complaint_id', complaintId);
     if (ste) throw ste;
-    const withPhoto = (st || []).find((s) => s.status === 'RESOLVED' && s.photo_url);
+    const withPhoto = (st || []).find((s) => s.status === 'VERIFICATION_PENDING' && s.photo_url);
     log(
-      '9. complaint reachable via public ID',
+      '10. complaint reachable via public ID',
       !!data && !!withPhoto,
-      withPhoto ? `RESOLVED + photo stored` : 'public row exists; photo in public timeline needs chunk 05 re-run'
+      withPhoto ? `CLOSED + proof photo stored` : 'public row exists; proof photo is missing from the timeline'
     );
   } catch (err) {
-    log('9. complaint reachable via public ID', false, err.message);
+    log('10. complaint reachable via public ID', false, err.message);
+  }
+
+  // 11. Admin deletion returns paths; Storage API removes the evidence.
+  try {
+    const { error } = await anon.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    if (error) throw error;
+    const { data: result, error: de } = await anon.rpc('delete_complaint', { p_complaint_id: complaintId });
+    if (de) throw de;
+    const paths = Array.isArray(result?.paths) ? result.paths.filter((path) => typeof path === 'string') : [];
+    if (paths.length) {
+      const { error: se } = await anon.storage.from('complaints').remove(paths);
+      if (se) throw se;
+    }
+    const { data: deletedRow, error: re } = await service.from('complaints').select('id').eq('id', complaintId).maybeSingle();
+    if (re) throw re;
+    const { data: objects, error: oe } = await service.storage.from('complaints').list(citizenId, { search: 'e2e-proof.png' });
+    if (oe) throw oe;
+    log('11. admin deletion + Storage API cleanup', !deletedRow && !(objects || []).some((object) => object.name === 'e2e-proof.png'), JSON.stringify({ paths }));
+  } catch (err) {
+    log('11. admin deletion + Storage API cleanup', false, err.message);
   }
 
   // Cleanup test citizen
