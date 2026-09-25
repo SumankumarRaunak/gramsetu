@@ -662,20 +662,6 @@ export async function callCloseComplaint(complaintId: number, remarks?: string):
   if (error) throw error;
 }
 
-export async function deleteComplaint(complaintId: number): Promise<void> {
-  const { data, error } = await supabase.rpc('delete_complaint', { p_complaint_id: complaintId });
-  if (error) throw error;
-
-  const rawPaths = (data as { paths?: unknown } | null)?.paths;
-  const paths = Array.isArray(rawPaths)
-    ? rawPaths.filter((path: unknown): path is string => typeof path === 'string' && path.length > 0)
-    : [];
-  if (!paths.length) return;
-
-  const { error: storageError } = await supabase.storage.from('complaints').remove(paths);
-  if (storageError) throw storageError;
-}
-
 // ---------------------------------------------------------------------------
 // Profile helpers
 // ---------------------------------------------------------------------------

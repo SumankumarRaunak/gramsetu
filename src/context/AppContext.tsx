@@ -15,7 +15,6 @@ import { supabase } from '../lib/supabaseClient';
 import {
   AuthorityRow,
   callCloseComplaint,
-  deleteComplaint as deleteComplaintApi,
   callForward,
   callReject,
   callRespondVerification,
@@ -86,7 +85,6 @@ interface AppContextType {
   ) => Promise<void>;
   respondToVerification: (id: string, response: 'confirmed' | 'disputed', remarks?: string) => Promise<void>;
   closeComplaint: (id: string, remarks?: string) => Promise<void>;
-  deleteComplaint: (id: string) => Promise<void>;
   simulateAutoEscalation: (id: string) => Promise<void>;
   submitFeedback: (id: string, rating: number, status: 'yes' | 'partially' | 'no', comment: string) => Promise<void>;
   markNotificationRead: (id: string) => void;
@@ -788,18 +786,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [refreshComplaints]
   );
 
-  const deleteComplaint = useCallback(
-    async (id: string) => {
-      if (role !== 'admin') throw new Error('Only an admin can delete complaints.');
-      const dbId = resolveDbId(id);
-      if (!dbId) throw new Error('Complaint not found');
-      await deleteComplaintApi(dbId);
-      setComplaints((current) => current.filter((complaint) => complaint.id !== id));
-      if (selectedIdRef.current === id) setSelectedComplaintId(null);
-    },
-    [role, setSelectedComplaintId]
-  );
-
   const rejectComplaint = useCallback(
     async (id: string, remark?: string) => {
       const dbId = resolveDbId(id);
@@ -893,7 +879,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitForVerification,
         respondToVerification,
         closeComplaint,
-        deleteComplaint,
         simulateAutoEscalation,
         submitFeedback,
         markNotificationRead,
