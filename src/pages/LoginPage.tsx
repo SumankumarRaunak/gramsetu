@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import logoImage from '../assets/images/logo.jpg';
 import { Lock, Mail, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -47,7 +48,7 @@ export const LoginPage: React.FC = () => {
         <div className="text-center space-y-2.5">
           <div className="w-14 h-14 rounded-2xl overflow-hidden border border-emerald-700/30 bg-emerald-950 flex items-center justify-center mx-auto shadow-sm">
             <img
-              src="/src/assets/images/logo.jpg"
+              src={logoImage}
               alt="GramSwaraj Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

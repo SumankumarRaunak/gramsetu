@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import heroImage from '../assets/images/smart_village_hero.jpg';
 import { trackComplaintPublic } from '../lib/api';
 import {
   FileText,
@@ -76,7 +77,7 @@ export const LandingPage: React.FC = () => {
         {/* Subtle Rural Bihar Panorama Backdrop with Scrim */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/src/assets/images/smart_village_hero.jpg"
+            src={heroImage}
             alt="Rural Bihar Smart Village"
             className="w-full h-full object-cover opacity-20 filter contrast-125"
             referrerPolicy="no-referrer"

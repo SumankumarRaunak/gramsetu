@@ -28,6 +28,7 @@ import {
   Video,
   BadgeCheck,
   ClipboardCheck,
+  Trash2,
 } from 'lucide-react';
 
 export const AuthorityDashboard: React.FC = () => {
@@ -39,6 +40,7 @@ export const AuthorityDashboard: React.FC = () => {
     rejectComplaint,
     submitForVerification,
     closeComplaint,
+    deleteComplaint,
     simulateAutoEscalation,
     user,
     setSelectedComplaintId,
@@ -57,7 +59,7 @@ export const AuthorityDashboard: React.FC = () => {
   const [forwardTarget, setForwardTarget] = useState<AuthorityTier>('Mukhiya');
   const [forwardReason, setForwardReason] = useState('Requires higher department fund sanction & tender approval.');
   const [officialRemark, setOfficialRemark] = useState('');
-  const [proofImage, setProofImage] = useState('/src/assets/images/street_light_proof.jpg');
+  const [proofImage, setProofImage] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofVideo, setProofVideo] = useState<File | null>(null);
   const [proofVideoUrl, setProofVideoUrl] = useState('');
@@ -69,6 +71,7 @@ export const AuthorityDashboard: React.FC = () => {
   const [isApplying, setIsApplying] = useState(false);
   const [isForwardingMode, setIsForwardingMode] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const VERIFICATION_STATES: ComplaintStatus[] = ['verification_pending', 'citizen_confirmed', 'disputed'];
 
@@ -251,6 +254,20 @@ export const AuthorityDashboard: React.FC = () => {
       setSuccessToast((err as Error)?.message || 'Failed to reject complaint.');
     }
     setTimeout(() => setSuccessToast(''), 3500);
+  };
+
+  const handleDelete = async (c: Complaint) => {
+    if (user.role !== 'admin' || !window.confirm(`Delete complaint ${c.id}? This cannot be undone.`)) return;
+    setDeletingId(c.id);
+    try {
+      await deleteComplaint(c.id);
+      setSuccessToast(`Complaint ${c.id} deleted successfully.`);
+    } catch (err) {
+      setSuccessToast((err as Error)?.message || 'Failed to delete complaint.');
+    } finally {
+      setDeletingId(null);
+      setTimeout(() => setSuccessToast(''), 3500);
+    }
   };
 
   if (user.role === 'citizen') {
@@ -515,7 +532,18 @@ export const AuthorityDashboard: React.FC = () => {
                     )}
                   </td>
                   <td className="p-3 text-right space-x-2">
-                    {user.role === 'admin' && c.status === 'pending' && (
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => handleDelete(c)}
+                        disabled={deletingId === c.id}
+                        className="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title="Delete complaint"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>{deletingId === c.id ? 'Deleting...' : 'Delete'}</span>
+                      </button>
+                    )}
+                    {user.role !== 'citizen' && (c.status === 'pending' || c.status === 'forwarded') && (
                       <>
                         <button
                           onClick={() => handleVerify(c)}

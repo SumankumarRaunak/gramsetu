@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabaseClient';
 import {
   AuthorityRow,
   callCloseComplaint,
+  deleteComplaint as deleteComplaintApi,
   callForward,
   callReject,
   callRespondVerification,
@@ -85,6 +86,7 @@ interface AppContextType {
   ) => Promise<void>;
   respondToVerification: (id: string, response: 'confirmed' | 'disputed', remarks?: string) => Promise<void>;
   closeComplaint: (id: string, remarks?: string) => Promise<void>;
+  deleteComplaint: (id: string) => Promise<void>;
   simulateAutoEscalation: (id: string) => Promise<void>;
   submitFeedback: (id: string, rating: number, status: 'yes' | 'partially' | 'no', comment: string) => Promise<void>;
   markNotificationRead: (id: string) => void;
@@ -104,7 +106,7 @@ interface AppContextType {
     password: string;
   }) => Promise<{ needsEmailConfirm: boolean }>;
   logout: () => Promise<void>;
-  refreshComplaints: () => Promise<void>;
+  refreshComplaints: () => Promise<Complaint[]>;
   authorities: AuthorityProfile[];
   role: UserRole;
   isAuthenticated: boolean;
@@ -355,7 +357,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Data loading
   // -------------------------------------------------------------------------
 
-  const refreshComplaints = useCallback(async () => {
+  const refreshComplaints = useCallback(async (): Promise<Complaint[]> => {
     const scope = role === 'admin' ? 'admin' : role === 'citizen' ? 'citizen' : 'authority';
     try {
       const list = await fetchComplaints({
@@ -364,9 +366,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         authorityId: scope === 'authority' ? authorityId : null,
       });
       setComplaints(list);
+      return list;
     } catch (err) {
       console.error('Failed to load complaints', err);
       setComplaints([]);
+      return [];
     }
   }, [role, user.id, authorityId]);
 
@@ -784,6 +788,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [refreshComplaints]
   );
 
+  const deleteComplaint = useCallback(
+    async (id: string) => {
+      if (role !== 'admin') throw new Error('Only an admin can delete complaints.');
+      const dbId = resolveDbId(id);
+      if (!dbId) throw new Error('Complaint not found');
+      await deleteComplaintApi(dbId);
+      setComplaints((current) => current.filter((complaint) => complaint.id !== id));
+      if (selectedIdRef.current === id) setSelectedComplaintId(null);
+    },
+    [role, setSelectedComplaintId]
+  );
+
   const rejectComplaint = useCallback(
     async (id: string, remark?: string) => {
       const dbId = resolveDbId(id);
@@ -877,6 +893,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitForVerification,
         respondToVerification,
         closeComplaint,
+        deleteComplaint,
         simulateAutoEscalation,
         submitFeedback,
         markNotificationRead,

@@ -28,7 +28,8 @@ citizen feedback.
 
 3. Set up the database by running the SQL files in `database/` (in order,
    `01_tables.sql` → `06_grants_seed.sql`, plus `07_denormalize.sql`,
-   `08_closure_verification.sql`) in the **Supabase Dashboard → SQL Editor**.
+   `08_closure_verification.sql`, `10_backfill_submitter_snapshot.sql`, and
+   `11_authority_workflow.sql`) in the **Supabase Dashboard → SQL Editor**.
    If complaints already exist, also run `10_backfill_submitter_snapshot.sql`
    once to populate their citizen contact details.
 
@@ -49,6 +50,20 @@ citizen feedback.
    ```
    npm run dev
    ```
+
+## Complaint Workflow
+
+After `11_authority_workflow.sql` is applied, a new complaint is assigned
+directly to the active Gram Panchayat Sachiv matching its village, panchayat,
+block, and district. The Sachiv can verify or reject it without developer/admin
+approval. The initial SLA is 7 days; overdue files automatically move to
+Mukhiya, then BDO, then DM. Each assignment and escalation is recorded in the
+citizen timeline and creates a pending email notification.
+
+Deploy `send-complaint-email` and configure its SMTP secrets plus
+`APP_URL=https://complaint-management-drab.vercel.app`. Run the function every
+few minutes using Supabase cron or an external scheduler to deliver pending
+authority emails.
 
 ## Official Accounts
 

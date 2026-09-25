@@ -33,6 +33,7 @@ export interface ComplaintRow {
   current_authority_name: string;
   created_at: string;
   updated_at: string;
+  authority_due_at: string | null;
   resolved_at: string | null;
   closed_at: string | null;
   submitter_name: string;
@@ -310,7 +311,7 @@ export async function fetchComplaints(opts: {
     .from('complaints')
     .select(
       'id,complaint_id,user_id,category_id,title,description,village,ward,panchayat,district,block,landmark,' +
-        'photo_url,status,current_authority_id,current_authority_name,created_at,updated_at,resolved_at,closed_at,' +
+         'photo_url,status,current_authority_id,current_authority_name,created_at,updated_at,authority_due_at,resolved_at,closed_at,' +
         'submitter_name,submitter_mobile,submitter_email,category_name,priority'
     )
     .order('created_at', { ascending: false });
@@ -341,7 +342,7 @@ export async function fetchComplaints(opts: {
       : (CATEGORY_SLUG_TO_UI[row.category_name?.toLowerCase().replace(/[^a-z_]/g, '_')] ?? 'other');
     const status = DB_TO_UI_STATUS[row.status] || 'pending';
     const createdAt = new Date(row.created_at);
-    const due = new Date(createdAt.getTime() + 7 * 86400000);
+    const due = row.authority_due_at ? new Date(row.authority_due_at) : new Date(createdAt.getTime() + 7 * 86400000);
     const events = (timeline[row.id] || []).map((t, i): TimelineEvent => {
       const label = STATUS_LABELS[t.status] || { en: t.status, hi: t.status };
       const remarks = t.remarks || t.changed_by || 'Official update';
@@ -637,6 +638,11 @@ export async function callCloseComplaint(complaintId: number, remarks?: string):
     p_complaint_id: complaintId,
     p_remarks: remarks || '',
   });
+  if (error) throw error;
+}
+
+export async function deleteComplaint(complaintId: number): Promise<void> {
+  const { error } = await supabase.rpc('delete_complaint', { p_complaint_id: complaintId });
   if (error) throw error;
 }
 

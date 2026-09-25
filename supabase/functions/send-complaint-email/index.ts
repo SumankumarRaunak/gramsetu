@@ -22,6 +22,7 @@ const SMTP_PORT = Number(Deno.env.get('SMTP_PORT') || '587');
 const SMTP_USER = Deno.env.get('SMTP_USER');
 const SMTP_PASS = Deno.env.get('SMTP_PASS');
 const SMTP_FROM = Deno.env.get('SMTP_FROM') || SMTP_USER || 'no-reply@village-swaraj.in';
+const APP_URL = Deno.env.get('APP_URL') || 'http://localhost:3000';
 
 interface ForwardingRow {
   id: number;
@@ -70,7 +71,7 @@ Deno.serve(async (_req) => {
     if (!fwd.recipient_email) {
       await supabase
         .from('complaint_forwarding')
-        .update({ email_status: 'FAILED', email_errors: 'No recipient email on authority' })
+        .update({ email_status: 'FAILED', email_error: 'No recipient email on authority' })
         .eq('id', fwd.id);
       failed++;
       continue;
@@ -83,7 +84,7 @@ Deno.serve(async (_req) => {
       .eq('id', fwd.complaint_id)
       .maybeSingle();
 
-    const trackUrl = `${SUPABASE_URL.replace(/https?:\/\//, '')}/?complaint=${complaint?.complaint_id || fwd.complaint_id}`;
+    const trackUrl = `${APP_URL.replace(/\/$/, '')}/track?complaint=${encodeURIComponent(complaint?.complaint_id || fwd.complaint_id)}`;
 
     try {
       await transporter.sendMail({
@@ -103,7 +104,7 @@ Deno.serve(async (_req) => {
             <tr><th align="left">Forwarded By</th><td>${fwd.forwarded_by_name}</td></tr>
             <tr><th align="left">Remarks</th><td>${fwd.remarks || '-'}</td></tr>
           </table>
-          <p>Track & act on this file: <a href="https://${trackUrl}">${trackUrl}</a></p>
+           <p>Track & act on this file: <a href="${trackUrl}">${trackUrl}</a></p>
           <p>If no action is taken within 7 days, the file auto-escalates.</p>
           <p style="color:#666;font-size:12px;">Public Grievance Redressal Portal | Panchayati Raj Department, Government of Bihar</p>
         `,
@@ -112,13 +113,13 @@ Deno.serve(async (_req) => {
       await supabase.from('complaint_forwarding').update({
         email_status: 'SENT',
         emailed_at: new Date().toISOString(),
-        email_errors: null,
+        email_error: '',
       }).eq('id', fwd.id);
       sent++;
     } catch (err) {
       await supabase.from('complaint_forwarding').update({
         email_status: 'FAILED',
-        email_errors: err instanceof Error ? err.message : 'send failed',
+        email_error: err instanceof Error ? err.message : 'send failed',
       }).eq('id', fwd.id);
       failed++;
     }

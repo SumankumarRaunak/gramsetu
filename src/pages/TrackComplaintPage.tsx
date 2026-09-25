@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import {
   Search,
@@ -50,6 +51,7 @@ const dbToUiStatus = (db: string | undefined): ComplaintStatus => {
 
 export const TrackComplaintPage: React.FC = () => {
   const { complaints, setSelectedComplaintId, setCurrentPage, language, t } = useApp();
+  const [searchParams] = useSearchParams();
 
   const [searchId, setSearchId] = useState('');
   const [result, setResult] = useState<PublicTrackResult | null>(null);
@@ -57,9 +59,7 @@ export const TrackComplaintPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchId.trim()) return;
+  const loadComplaint = async (id: string) => {
     setIsSearching(true);
     setSearched(true);
     setNotFound(false);
@@ -74,6 +74,20 @@ export const TrackComplaintPage: React.FC = () => {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  useEffect(() => {
+    const complaintId = searchParams.get('complaint');
+    if (complaintId) {
+      setSearchId(complaintId);
+      void loadComplaint(complaintId);
+    }
+  }, [searchParams]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchId.trim()) return;
+    await loadComplaint(searchId.trim());
   };
 
   const status = result ? dbToUiStatus(result.status) : 'pending';

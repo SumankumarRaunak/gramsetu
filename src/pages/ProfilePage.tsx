@@ -27,6 +27,8 @@ export const ProfilePage: React.FC = () => {
   const [editVillage, setEditVillage] = useState(user.village);
   const [editWard, setEditWard] = useState(user.ward);
   const [editPanchayat, setEditPanchayat] = useState(user.panchayat);
+  const [editBlock, setEditBlock] = useState(user.block);
+  const [editDistrict, setEditDistrict] = useState(user.district);
   const [editMobile, setEditMobile] = useState(user.mobile);
 
   const [oldPass, setOldPass] = useState('');
@@ -39,8 +41,10 @@ export const ProfilePage: React.FC = () => {
     setEditVillage(user.village);
     setEditWard(user.ward);
     setEditPanchayat(user.panchayat);
+    setEditBlock(user.block);
+    setEditDistrict(user.district);
     setEditMobile(user.mobile);
-  }, [user.name, user.email, user.village, user.ward, user.panchayat, user.mobile]);
+  }, [user.name, user.email, user.village, user.ward, user.panchayat, user.block, user.district, user.mobile]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +55,8 @@ export const ProfilePage: React.FC = () => {
         village: editVillage,
         ward: editWard,
         panchayat: editPanchayat,
+        block: editBlock,
+        district: editDistrict,
       });
       setIsEditing(false);
       setStatusMsg('Profile updated successfully.');
@@ -267,6 +273,27 @@ export const ProfilePage: React.FC = () => {
                     type="text"
                     value={editWard}
                     onChange={(e) => setEditWard(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Block</label>
+                  <input
+                    type="text"
+                    value={editBlock}
+                    onChange={(e) => setEditBlock(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">District</label>
+                  <input
+                    type="text"
+                    value={editDistrict}
+                    onChange={(e) => setEditDistrict(e.target.value)}
                     className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none"
                   />
                 </div>

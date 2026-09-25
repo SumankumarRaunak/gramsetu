@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp, PageId } from '../context/AppContext';
+import logoImage from '../assets/images/logo.jpg';
 import {
   Bell,
   User,
@@ -97,7 +98,7 @@ export const Header: React.FC = () => {
             >
               <div className="w-10 h-10 rounded-xl overflow-hidden border border-emerald-800/30 shadow-xs bg-emerald-950 flex items-center justify-center shrink-0">
                 <img
-                  src="/src/assets/images/logo.jpg"
+                  src={logoImage}
                   alt="GramSwaraj Logo"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"

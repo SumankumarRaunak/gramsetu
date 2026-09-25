@@ -30,10 +30,10 @@ const authorityUsers = [
 ];
 
 const authoritiesProfiles = [
-  { name: 'Rameshwar Roy', designation: 'Gram Panchayat Sachiv', role: 'PANCHAYAT' },
-  { name: 'Shailesh Prasad', designation: 'Mukhiya', role: 'MUKHIYA' },
-  { name: 'Block Development Officer', designation: 'BDO (Block Officer)', role: 'OFFICER' },
-  { name: 'District Magistrate', designation: 'DM (District Magistrate)', role: 'OFFICER' },
+  { name: 'Rameshwar Roy', designation: 'Gram Panchayat Sachiv', role: 'PANCHAYAT', village: '', panchayat: '', block: '', district: '' },
+  { name: 'Shailesh Prasad', designation: 'Mukhiya', role: 'MUKHIYA', village: '', panchayat: '', block: '', district: '' },
+  { name: 'Block Development Officer', designation: 'BDO (Block Officer)', role: 'OFFICER', village: '', panchayat: '', block: '', district: '' },
+  { name: 'District Magistrate', designation: 'DM (District Magistrate)', role: 'OFFICER', village: '', panchayat: '', block: '', district: '' },
 ];
 
 async function ensureAdmin() {
@@ -111,9 +111,13 @@ async function ensureAuthorities() {
           name: p.name,
           designation: p.designation,
           role: p.role,
-          email: u.email,
-          phone: u.phone,
-          is_active: true,
+           email: u.email,
+           phone: u.phone,
+           village: p.village,
+           panchayat: p.panchayat,
+           block: p.block,
+           district: p.district,
+           is_active: true,
         },
         { onConflict: 'email' }
       )

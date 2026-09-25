@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import heroImage from '../assets/images/smart_village_hero.jpg';
 import { UserCheck, Lock, Mail, Phone, MapPin, CheckCircle2, ShieldCheck, ArrowRight, MailCheck, Eye, EyeOff } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
@@ -91,7 +92,7 @@ export const RegisterPage: React.FC = () => {
         {/* Left Side: Smart Village Illustration / Banner */}
         <div className="lg:col-span-5 relative bg-emerald-950 text-white p-8 sm:p-10 flex flex-col justify-between overflow-hidden">
           <img
-            src="/src/assets/images/smart_village_hero.jpg"
+            src={heroImage}
             alt="Smart Village Bihar"
             className="absolute inset-0 w-full h-full object-cover opacity-35"
             referrerPolicy="no-referrer"

@@ -39,11 +39,6 @@ export const CitizenDashboard: React.FC = () => {
       {/* Top Government Welcome Banner */}
       <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-900/60 border border-emerald-600/40 rounded-full text-xs font-semibold text-emerald-300">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Verified Rural Citizen Portal</span>
-          </div>
-
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             {language === 'hi' ? `स्वागत है, ${user.name}` : `Welcome, ${user.name}`}
           </h1>
