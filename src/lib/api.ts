@@ -238,6 +238,7 @@ export function resolveCid(dbId: number): string | undefined {
 const mapTier = (authorityName: string, designation: string, dbRole: string): AuthorityTier => {
   const n = `${authorityName} ${designation}`.toLowerCase();
   if (dbRole === 'MUKHIYA' || n.includes('mukhiya')) return 'Mukhiya';
+  if (dbRole === 'DEPARTMENT') return 'DM / District Authority';
   if (n.includes('district') || n.includes('dm')) return 'DM / District Authority';
   if (n.includes('block') || dbRole === 'OFFICER') return 'Block Officer';
   return 'Gram Panchayat Officer';
@@ -326,7 +327,7 @@ export async function fetchComplaints(opts: {
   if (error) throw error;
   const rows = ((data as unknown) ?? []) as ComplaintRow[];
 
-  const [timeline, feedback, closures] = await Promise.all([
+  const [timeline, feedback, closures, authorities] = await Promise.all([
     fetchTimelines(rows.map((r) => r.id)).catch((error): Record<number, TimelineRow[]> => {
       console.warn('Failed to load complaint timelines', error);
       return {};
@@ -339,9 +340,14 @@ export async function fetchComplaints(opts: {
       console.warn('Failed to load complaint closures', error);
       return {};
     }),
+    fetchAuthorities().catch((error): AuthorityRow[] => {
+      console.warn('Failed to load authority directory', error);
+      return [];
+    }),
   ]);
   const categories = await getCategories();
   const catById = new Map(categories.map((c) => [c.id, c]));
+  const authorityById = new Map(authorities.map((authority) => [authority.id, authority]));
 
   const now = Date.now();
   return rows.map((row) => {
@@ -390,6 +396,7 @@ export async function fetchComplaints(opts: {
 
     const fb = feedback[row.id];
     const closure = closures[row.id]?.[0];
+    const currentAuthority = authorityById.get(row.current_authority_id || '');
 
     const toClosure = (k: ClosureRow): ClosureRecord => ({
       id: k.id,
@@ -422,7 +429,10 @@ export async function fetchComplaints(opts: {
       category: uiCat,
       priority,
       status,
-      currentAuthority: toAuthorityTier(row.current_authority_name || ''),
+      workflowStatus: row.status,
+      currentAuthority: currentAuthority
+        ? mapTier(currentAuthority.name, currentAuthority.designation, currentAuthority.role)
+        : toAuthorityTier(row.current_authority_name || ''),
       submittedBy: {
         name: row.submitter_name || 'Citizen',
         mobile: row.submitter_mobile || '',

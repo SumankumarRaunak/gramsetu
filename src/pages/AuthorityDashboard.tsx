@@ -554,7 +554,9 @@ export const AuthorityDashboard: React.FC = () => {
                         <span>{deletingId === c.id ? 'Deleting...' : 'Delete'}</span>
                       </button>
                     )}
-                    {user.role !== 'citizen' && (c.status === 'pending' || c.status === 'forwarded') && (
+                    {user.role !== 'citizen' &&
+                      (c.status === 'pending' || c.status === 'forwarded') &&
+                      c.workflowStatus !== 'VERIFIED' && (
                       <>
                         <button
                           onClick={() => handleVerify(c)}

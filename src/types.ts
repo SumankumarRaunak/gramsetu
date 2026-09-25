@@ -78,6 +78,7 @@ export interface Complaint {
   category: ComplaintCategory;
   priority: ComplaintPriority;
   status: ComplaintStatus;
+  workflowStatus?: string;
   currentAuthority: AuthorityTier;
   submittedBy: {
     name: string;
