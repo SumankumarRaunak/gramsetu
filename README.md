@@ -1,4 +1,4 @@
-# Smart Village Complaint Management System (GramSwaraj)
+# GramSetu
 
 Citizen-facing portal (Hindi/English) for reporting village problems, tracking
 multi-tier resolution — Gram Panchayat Officer → Mukhiya → Block Officer → DM —

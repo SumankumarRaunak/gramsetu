@@ -48,7 +48,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ complaint, isOpen, o
             <Landmark className="w-6 h-6 text-emerald-300" />
             <div>
               <h3 className="font-bold text-sm tracking-tight">
-                {language === 'hi' ? 'ग्राम स्वराज पावती रसीद' : 'Gram Swaraj Official Acknowledgement Slip'}
+                {language === 'hi' ? 'ग्राम सेतु पावती रसीद' : 'GramSetu Official Acknowledgement Slip'}
               </h3>
               <p className="text-[11px] text-emerald-300">
                 Panchayati Raj Department · Govt of Bihar

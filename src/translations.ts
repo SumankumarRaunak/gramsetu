@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    systemTitle: 'Smart Village Complaint Management System',
+    systemTitle: 'GramSetu',
     systemSubtitle: 'Government of Bihar · Panchayati Raj Department',
     heroBadge: 'Transparent • Fast • Accountable',
     heroTitle1: 'Your Complaint.',
@@ -163,7 +163,7 @@ export const translations = {
     faqTitle: 'Frequently Asked Questions (FAQs)',
     helplineTitle: 'Rural Grievance Assistance Helpline',
     // Admin / Authority
-    authorityPortalTitle: 'Gram Swaraj Grievance Officer Console',
+    authorityPortalTitle: 'GramSetu Grievance Officer Console',
     btnAccept: 'Accept Grievance',
     btnUpdateStatus: 'Update Status',
     btnForward: 'Forward to Higher Tier',

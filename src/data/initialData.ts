@@ -26,8 +26,8 @@ export const sampleFAQs: FAQItem[] = [
     id: 'faq-4',
     questionEn: 'When and how does a complaint automatically forward/escalate?',
     questionHi: 'शिकायत स्वतः अग्रेषित (Auto-forward) कब और कैसे होती है?',
-    answerEn: 'Under the Smart Gram Swaraj 7-day rule: If the Gram Panchayat Officer does not act within 7 days, the system automatically transfers the grievance to the Mukhiya. If unresolved, it moves to the Block Development Officer (BDO), and finally to the District Magistrate (DM).',
-    answerHi: 'स्मार्ट ग्राम स्वराज 7-दिवसीय नियम के तहत: यदि पंचायत पदाधिकारी 7 दिनों में कार्रवाई नहीं करते, तो प्रणाली शिकायत स्वतः मुखिया जी को भेज देती है। फिर भी हल न होने पर बीडीओ और अंत में डीएम (जिलाधिकारी) को अग्रेषित हो जाती है।',
+    answerEn: 'Under the GramSetu 7-day rule: If the Gram Panchayat Officer does not act within 7 days, the system automatically transfers the grievance to the Mukhiya. If unresolved, it moves to the Block Development Officer (BDO), and finally to the District Magistrate (DM).',
+    answerHi: 'ग्राम सेतु 7-दिवसीय नियम के तहत: यदि पंचायत पदाधिकारी 7 दिनों में कार्रवाई नहीं करते, तो प्रणाली शिकायत स्वतः मुखिया जी को भेज देती है। फिर भी हल न होने पर बीडीओ और अंत में डीएम (जिलाधिकारी) को अग्रेषित हो जाती है।',
   },
   {
     id: 'faq-5',

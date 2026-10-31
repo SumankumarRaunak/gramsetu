@@ -89,11 +89,11 @@ export const RegisterPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
-        {/* Left Side: Smart Village Illustration / Banner */}
+        {/* Left Side: GramSetu Illustration / Banner */}
         <div className="lg:col-span-5 relative bg-emerald-950 text-white p-8 sm:p-10 flex flex-col justify-between overflow-hidden">
           <img
             src={heroImage}
-            alt="Smart Village Bihar"
+            alt="GramSetu Bihar"
             className="absolute inset-0 w-full h-full object-cover opacity-35"
             referrerPolicy="no-referrer"
           />
@@ -103,7 +103,7 @@ export const RegisterPage: React.FC = () => {
           <div className="relative z-10 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-800/80 border border-emerald-600/40 rounded-full text-xs font-semibold text-emerald-200">
               <ShieldCheck className="w-4 h-4 text-emerald-300" />
-              <span>Bihar Gram Swaraj Portal</span>
+              <span>Bihar GramSetu Portal</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
               {language === 'hi'
@@ -398,7 +398,7 @@ export const RegisterPage: React.FC = () => {
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
               />
               <label htmlFor="terms" className="text-[11px] text-slate-600">
-                I agree to the Bihar Gram Swaraj Grievance Terms & Conditions and certify local residency.
+                I agree to the Bihar GramSetu Grievance Terms & Conditions and certify local residency.
               </label>
             </div>
 

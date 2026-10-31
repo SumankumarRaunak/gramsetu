@@ -34,8 +34,8 @@ export async function generateComplaintReceiptPdf(complaint: Complaint): Promise
   page.drawRectangle({ x: 0, y: y - 14, width: W, height: 4, color: emerald });
 
   line('GOVERNMENT OF BIHAR - PANCHAYATI RAJ DEPARTMENT', 14, { bold: true, color: emerald });
-  line('Smart Village Complaint Management Portal', 10, { color: grey });
-  line('Gram Swaraj Official Acknowledgement Slip', 10, { color: grey, gap: 24 });
+  line('GramSetu Complaint Portal', 10, { color: grey });
+  line('GramSetu Official Acknowledgement Slip', 10, { color: grey, gap: 24 });
 
   line('OFFICIAL COMPLAINT TRACKING ID', 9, { bold: true, color: grey, gap: 3 });
   line(complaint.id, 22, { bold: true, color: emerald, gap: 20 });

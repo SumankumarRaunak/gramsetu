@@ -99,7 +99,7 @@ export const Header: React.FC = () => {
               <div className="w-10 h-10 rounded-xl overflow-hidden border border-emerald-800/30 shadow-xs bg-emerald-950 flex items-center justify-center shrink-0">
                 <img
                   src={logoImage}
-                  alt="GramSwaraj Logo"
+                  alt="GramSetu Logo"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
@@ -107,11 +107,11 @@ export const Header: React.FC = () => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-none group-hover:text-emerald-800 transition-colors">
-                    Smart Village
+                    GramSetu
                   </span>
                 </div>
                 <span className="text-[11px] font-semibold text-emerald-800 tracking-tight leading-tight mt-0.5">
-                  {language === 'hi' ? 'शिकायत प्रबंधन पोर्टल' : 'Complaint Management Portal'}
+                  {language === 'hi' ? 'शिकायत प्रबंधन पोर्टल' : 'GramSetu Portal'}
                 </span>
               </div>
             </button>

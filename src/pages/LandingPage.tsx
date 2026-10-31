@@ -78,7 +78,7 @@ export const LandingPage: React.FC = () => {
         <div className="absolute inset-0 z-0">
           <img
             src={heroImage}
-            alt="Rural Bihar Smart Village"
+            alt="Rural Bihar GramSetu"
             className="w-full h-full object-cover opacity-20 filter contrast-125"
             referrerPolicy="no-referrer"
           />
@@ -106,18 +106,18 @@ export const LandingPage: React.FC = () => {
           {/* Main Headline & Narrative */}
           <div className="max-w-4xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/40 rounded-full text-xs font-bold text-emerald-300">
-              <span>{language === 'hi' ? 'स्मार्ट विलेज शिकायत प्रबंधन पोर्टल' : 'Smart Village Grievance Management Portal'}</span>
+              <span>{language === 'hi' ? 'ग्राम सेतु शिकायत प्रबंधन पोर्टल' : 'GramSetu Grievance Portal'}</span>
             </div>
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight text-balance">
               {language === 'hi' ? (
                 <>
-                  स्मार्ट विलेज{' '}
+                  ग्राम सेतु{' '}
                   <span className="text-emerald-400">शिकायत प्रबंधन पोर्टल</span>
                 </>
               ) : (
                 <>
-                  Smart Village{' '}
-                  <span className="text-emerald-400">Grievance Management Portal</span>
+                  GramSetu{' '}
+                  <span className="text-emerald-400">Grievance Portal</span>
                 </>
               )}
             </h1>

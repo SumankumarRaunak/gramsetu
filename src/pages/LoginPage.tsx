@@ -49,14 +49,14 @@ export const LoginPage: React.FC = () => {
           <div className="w-14 h-14 rounded-2xl overflow-hidden border border-emerald-700/30 bg-emerald-950 flex items-center justify-center mx-auto shadow-sm">
             <img
               src={logoImage}
-              alt="GramSwaraj Logo"
+              alt="GramSetu Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
           </div>
 
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {language === 'hi' ? 'ग्राम स्वराज लॉगिन पोर्टल' : 'GramSwaraj Portal Login'}
+            {language === 'hi' ? 'ग्राम सेतु लॉगिन पोर्टल' : 'GramSetu Portal Login'}
           </h1>
           <p className="text-xs text-slate-500">
             {language === 'hi'
